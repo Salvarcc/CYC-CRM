@@ -38,3 +38,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+
+# Engram AI agent memory
+.engram/
+
+# Prisma generated
+/src/generated/prisma
+
+# Prisma auto-installed skills
+.agents/skills/prisma-*/
+.claude/
+.windsurf/
+skills-lock.json
+
+# Project context (sensitive / internal docs)
+REQUERIMIENTOS.md
+CONTEXTO.md

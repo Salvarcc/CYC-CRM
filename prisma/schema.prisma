@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Procesador (CPU) ───────────────────────────────────────────────
+
+model Cpu {
+  id                       String   @id @default(cuid())
+  nombre                   String
+  marca                    String
+  socket                   String
+  tipoMemoria              String   // DDR4 | DDR5
+  requiereCooler           Boolean
+  tdp                      Int      // Watts
+  tieneGraficosIntegrados  Boolean
+  imagenUrl                String?
+  precio                   Decimal? @db.Decimal(10, 2)
+  stock                    Int      @default(0)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([socket])
+  @@index([tipoMemoria])
+}
+
+// ─── Placa Madre (Motherboard) ──────────────────────────────────────
+
+model Motherboard {
+  id            String   @id @default(cuid())
+  nombre        String
+  marca         String
+  socket        String
+  tipoMemoria   String   // DDR4 | DDR5
+  factorForma   String   // ATX | Micro-ATX | Mini-ITX
+  ramSlots      Int
+  maxMemoriaGB  Int
+  imagenUrl     String?
+  precio        Decimal? @db.Decimal(10, 2)
+  stock         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([socket])
+  @@index([tipoMemoria])
+  @@index([factorForma])
+}
+
+// ─── Memoria RAM ────────────────────────────────────────────────────
+
+model Ram {
+  id             String   @id @default(cuid())
+  nombre         String
+  marca          String
+  tipoMemoria    String   // DDR4 | DDR5
+  factorForma    String   // DIMM | SODIMM
+  capacidadGB    Int
+  frecuenciaMHz  Int
+  imagenUrl      String?
+  precio         Decimal? @db.Decimal(10, 2)
+  stock          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tipoMemoria])
+  @@index([factorForma])
+}
+
+// ─── Tarjeta de Video (GPU) ─────────────────────────────────────────
+
+model Gpu {
+  id                              String   @id @default(cuid())
+  nombre                          String
+  marca                           String
+  vramGB                          Int
+  consumoRecomendadoFuenteWatts   Int
+  largoMm                         Int
+  imagenUrl                       String?
+  precio                          Decimal? @db.Decimal(10, 2)
+  stock                           Int      @default(0)
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+
+  @@index([marca])
+}
+
+// ─── Sistema de Refrigeración (Cooler / AIO) ────────────────────────
+
+model Cooler {
+  id                  String   @id @default(cuid())
+  nombre              String
+  marca               String
+  socketsSoportados   String[] // e.g. ["LGA1700", "AM5", "LGA1851"]
+  tdpSoportadoWatts   Int
+  tipoRefrigeracion   String   // Aire | Líquida AIO
+  numeroVentiladores  Int
+  imagenUrl           String?
+  precio              Decimal? @db.Decimal(10, 2)
+  stock               Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([tipoRefrigeracion])
+}
+
+// ─── Gabinete (Case) ────────────────────────────────────────────────
+
+model Case {
+  id                            String   @id @default(cuid())
+  nombre                        String
+  marca                         String
+  soportaFactoresForma          String[] // e.g. ["ATX", "Micro-ATX", "Mini-ITX"]
+  largoMaxGpuMm                 Int
+  tieneFuentePoder              Boolean
+  potenciaFuenteWatts           Int      // 0 si no incluye
+  soportaFanCoolerVentiladores  Int      // max fans or radiator slots
+  imagenUrl                     String?
+  precio                        Decimal? @db.Decimal(10, 2)
+  stock                         Int      @default(0)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  @@index([soportaFactoresForma])
+}
+
+// ─── Fuente de Poder (PSU) ──────────────────────────────────────────
+
+model Psu {
+  id                  String   @id @default(cuid())
+  nombre              String
+  marca               String
+  potenciaWatts       Int
+  certificacion80Plus String   // Bronze | Gold | Platinum | Titanium
+  esModular           Boolean
+  factorForma         String   // ATX | SFX
+  imagenUrl           String?
+  precio              Decimal? @db.Decimal(10, 2)
+  stock               Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([certificacion80Plus])
+  @@index([factorForma])
+}
