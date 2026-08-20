@@ -1019,3 +1019,40 @@ export const ArrowRightUpIcon = (props: IconProps) => {
         </svg>
     );
 };
+
+export const CymLogo = (props: IconProps) => {
+    return (
+        <svg
+            width={32}
+            height={32}
+            viewBox='0 0 32 32'
+            fill='none'
+            xmlns='http://www.w3.org/2000/svg'
+            {...props}
+        >
+            <rect x='2' y='4' width='28' height='18' rx='3' fill='var(--brand-500)' />
+            <rect x='5' y='7' width='22' height='12' rx='1' fill='white' />
+            <rect x='12' y='22' width='8' height='2' rx='1' fill='var(--brand-400)' />
+            <rect x='8' y='24' width='16' height='2' rx='1' fill='var(--brand-300)' />
+        </svg>
+    );
+};
+
+export const CymLogoText = (props: IconProps) => {
+    return (
+        <svg
+            xmlns='http://www.w3.org/2000/svg'
+            width={140}
+            height={32}
+            viewBox='0 0 140 32'
+            fill='none'
+            {...props}
+        >
+            <rect x='0' y='4' width='28' height='18' rx='3' fill='var(--brand-500)' />
+            <rect x='3' y='7' width='22' height='12' rx='1' fill='white' />
+            <rect x='10' y='22' width='8' height='2' rx='1' fill='var(--brand-400)' />
+            <rect x='6' y='24' width='16' height='2' rx='1' fill='var(--brand-300)' />
+            <text x='36' y='22' fontFamily='Inter, sans-serif' fontSize='20' fontWeight='700' fill='var(--brand-500)'>CyM</text>
+        </svg>
+    );
+};

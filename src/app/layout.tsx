@@ -31,6 +31,12 @@ export default function RootLayout({
       lang="en"
       className={cn("h-full overflow-hidden antialiased", geistInter.className)}
     >
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        />
+      </head>
       <body className="h-full overflow-hidden bg-background-gray-secondary_alt_2">
         <ThemeProvider defaultTheme="light" enableSystem>
           <Providers>{children}</Providers>

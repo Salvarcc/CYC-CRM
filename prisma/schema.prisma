@@ -19,6 +19,7 @@ model Cpu {
   tdp                      Int      // Watts
   tieneGraficosIntegrados  Boolean
   imagenUrl                String?
+  moneda                   String   @default("USD") // USD | PEN
   precio                   Decimal? @db.Decimal(10, 2)
   stock                    Int      @default(0)
   createdAt                DateTime @default(now())
@@ -40,6 +41,7 @@ model Motherboard {
   ramSlots      Int
   maxMemoriaGB  Int
   imagenUrl     String?
+  moneda        String   @default("USD") // USD | PEN
   precio        Decimal? @db.Decimal(10, 2)
   stock         Int      @default(0)
   createdAt     DateTime @default(now())
@@ -61,6 +63,7 @@ model Ram {
   capacidadGB    Int
   frecuenciaMHz  Int
   imagenUrl      String?
+  moneda         String   @default("USD") // USD | PEN
   precio         Decimal? @db.Decimal(10, 2)
   stock          Int      @default(0)
   createdAt      DateTime @default(now())
@@ -80,6 +83,7 @@ model Gpu {
   consumoRecomendadoFuenteWatts   Int
   largoMm                         Int
   imagenUrl                       String?
+  moneda                          String   @default("USD") // USD | PEN
   precio                          Decimal? @db.Decimal(10, 2)
   stock                           Int      @default(0)
   createdAt                       DateTime @default(now())
@@ -99,6 +103,7 @@ model Cooler {
   tipoRefrigeracion   String   // Aire | Líquida AIO
   numeroVentiladores  Int
   imagenUrl           String?
+  moneda              String   @default("USD") // USD | PEN
   precio              Decimal? @db.Decimal(10, 2)
   stock               Int      @default(0)
   createdAt           DateTime @default(now())
@@ -119,6 +124,7 @@ model Case {
   potenciaFuenteWatts           Int      // 0 si no incluye
   soportaFanCoolerVentiladores  Int      // max fans or radiator slots
   imagenUrl                     String?
+  moneda                        String   @default("USD") // USD | PEN
   precio                        Decimal? @db.Decimal(10, 2)
   stock                         Int      @default(0)
   createdAt                     DateTime @default(now())
@@ -138,6 +144,7 @@ model Psu {
   esModular           Boolean
   factorForma         String   // ATX | SFX
   imagenUrl           String?
+  moneda              String   @default("USD") // USD | PEN
   precio              Decimal? @db.Decimal(10, 2)
   stock               Int      @default(0)
   createdAt           DateTime @default(now())
@@ -145,4 +152,18 @@ model Psu {
 
   @@index([certificacion80Plus])
   @@index([factorForma])
+}
+
+// ─── Tipo de Cambio (USD/PEN) ────────────────────────────────────────
+
+model TipoCambio {
+  id          String   @id @default(cuid())
+  compra      Decimal  @db.Decimal(10, 4) // Tipo de cambio de compra (USD → PEN)
+  venta       Decimal  @db.Decimal(10, 4) // Tipo de cambio de venta (USD → PEN)
+  fuente      String   @default("SUNAT")  // Fuente del tipo de cambio
+  fecha       DateTime @default(now())    // Fecha del tipo de cambio
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([fecha])
 }

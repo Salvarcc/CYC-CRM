@@ -216,7 +216,7 @@ const yearlyData: import("@/services/api/home").SalesDataPoint[] = [
   },
 ];
 
-export const salesChartMonthlyRawData: import("@/app/(with-layouts)/(dashboard)/(home)/_component/sales-chart/types").SalesChartRawResponse =
+export const salesChartMonthlyRawData: import("@/app/(with-layouts)/admin/_component/sales-chart/types").SalesChartRawResponse =
   {
     chart_id: "sch-9d2f4a7c-3e1b-4f8d-9c5a-2b6e0f1a3d4c",
     organization_id: "org-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -233,7 +233,7 @@ export const salesChartMonthlyRawData: import("@/app/(with-layouts)/(dashboard)/
     },
   };
 
-export const salesChartYearlyRawData: import("@/app/(with-layouts)/(dashboard)/(home)/_component/sales-chart/types").SalesChartRawResponse =
+export const salesChartYearlyRawData: import("@/app/(with-layouts)/admin/_component/sales-chart/types").SalesChartRawResponse =
   {
     chart_id: "sch-7e8f9a0b-2c3d-4e5f-8a9b-0c1d2e3f4a5b",
     organization_id: "org-a1b2c3d4-e5f6-7890-abcd-ef1234567890",

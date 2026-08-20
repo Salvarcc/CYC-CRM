@@ -1,0 +1,129 @@
+/* ============================================================
+   Stitch Design Tokens — Material Design 3 (Light)
+   Scoped to .store-root so they don't leak into the dashboard.
+   ============================================================ */
+.store-root {
+  /* ── Primary ─────────────────────────────────────────────── */
+  --store-primary: #b7131a;
+  --store-on-primary: #ffffff;
+  --store-primary-container: #db322f;
+  --store-on-primary-container: #fffbff;
+  --store-primary-fixed: #ffdad6;
+  --store-primary-fixed-dim: #ffb4ac;
+  --store-on-primary-fixed: #410002;
+  --store-on-primary-fixed-variant: #93000d;
+  --store-inverse-primary: #ffb4ac;
+  --store-surface-tint: #bb171c;
+
+  /* ── Secondary ───────────────────────────────────────────── */
+  --store-secondary: #00658d;
+  --store-on-secondary: #ffffff;
+  --store-secondary-container: #3dbeff;
+  --store-on-secondary-container: #004a69;
+  --store-secondary-fixed: #c6e7ff;
+  --store-secondary-fixed-dim: #83cfff;
+  --store-on-secondary-fixed: #001e2d;
+  --store-on-secondary-fixed-variant: #004c6b;
+
+  /* ── Tertiary ────────────────────────────────────────────── */
+  --store-tertiary: #515c71;
+  --store-on-tertiary: #ffffff;
+  --store-tertiary-container: #6a758a;
+  --store-on-tertiary-container: #fefcff;
+  --store-tertiary-fixed: #d8e3fb;
+  --store-tertiary-fixed-dim: #bcc7de;
+  --store-on-tertiary-fixed: #111c2d;
+  --store-on-tertiary-fixed-variant: #3c475a;
+
+  /* ── Error ───────────────────────────────────────────────── */
+  --store-error: #ba1a1a;
+  --store-on-error: #ffffff;
+  --store-error-container: #ffdad6;
+  --store-on-error-container: #93000a;
+
+  /* ── Surface ─────────────────────────────────────────────── */
+  --store-surface: #f7f9fb;
+  --store-on-surface: #191c1e;
+  --store-on-surface-variant: #5b403d;
+  --store-surface-variant: #e0e3e5;
+  --store-surface-dim: #d8dadc;
+  --store-surface-bright: #f7f9fb;
+  --store-inverse-surface: #2d3133;
+  --store-inverse-on-surface: #eff1f3;
+  --store-surface-container-lowest: #ffffff;
+  --store-surface-container-low: #f2f4f6;
+  --store-surface-container: #eceef0;
+  --store-surface-container-high: #e6e8ea;
+  --store-surface-container-highest: #e0e3e5;
+
+  /* ── Outline ─────────────────────────────────────────────── */
+  --store-outline: #906f6c;
+  --store-outline-variant: #e4beb9;
+
+  /* ── Background ──────────────────────────────────────────── */
+  --store-background: #f7f9fb;
+  --store-on-background: #191c1e;
+
+  /* ── Extra (WhatsApp green, info blue from Stitch) ──────── */
+  --store-whatsapp: #25d366;
+  --store-info: #00a8e8;
+  --store-success: #065f46;
+}
+
+/* ── Scoped utilities ──────────────────────────────────────── */
+/* ── Scroll override: root layout sets overflow-hidden on html/body,
+     so the store needs to re-enable scrolling on the wrapper. ── */
+.store-root {
+  overflow: auto;
+  height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-root main {
+  flex: 1;
+}
+
+.store-root {
+  --store-radius-sm: 0.125rem;
+  --store-radius-lg: 0.25rem;
+  --store-radius-xl: 0.5rem;
+  --store-radius-full: 0.75rem;
+}
+
+/* ── Material Symbols variant helper ───────────────────────── */
+.store-root .material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+.store-root .material-symbols-outlined.fill {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* ── Ambient card shadow on hover (Stitch pattern) ─────────── */
+.store-root .ambient-shadow:hover {
+  box-shadow: 0px 10px 15px -3px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
+}
+
+/* ── Input focus ring (Stitch pattern) ─────────────────────── */
+.store-root .tech-input {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease-in-out;
+}
+.store-root .tech-input:focus {
+  border-color: var(--store-info);
+  box-shadow: 0 0 0 2px rgba(0, 168, 232, 0.2);
+  outline: none;
+}
+
+/* ── Status badges (Stitch pattern) ────────────────────────── */
+.store-root .badge-success {
+  background-color: #ecfdf5;
+  color: #065f46;
+}
+.store-root .badge-tech {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}

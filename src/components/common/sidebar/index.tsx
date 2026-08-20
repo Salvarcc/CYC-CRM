@@ -1,10 +1,8 @@
 'use client';
 
-import { buttonStyles } from '@/components/tailgrids/core/button';
 import { CollapsibleGroup } from '@/components/tailgrids/core/collapsible';
 import { cn } from '@/utils/cn';
-import { Logo, LogoWithText, LogoWithTextDark } from '@/utils/icon';
-import { useTheme } from 'next-themes';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -26,7 +24,6 @@ export default function Sidebar({
     onItemClick?: () => void;
 }) {
     const pathname = usePathname();
-    const { theme } = useTheme();
 
     // Compute which group should be open based on the current route
     const activeGroupKey = useMemo(
@@ -49,17 +46,25 @@ export default function Sidebar({
                         : 'flex-col justify-center gap-4',
                 )}
             >
-                <Link href='/'>
+                <Link href='/admin'>
                     {isSidebarOpen ? (
-                        <>
-                            {theme === 'light' ? (
-                                <LogoWithText />
-                            ) : (
-                                <LogoWithTextDark />
-                            )}
-                        </>
+                        <Image
+                            src='/images/CyM-Logo1.png'
+                            alt='CyM'
+                            width={140}
+                            height={32}
+                            className='h-8 w-auto'
+                            priority
+                        />
                     ) : (
-                        <Logo />
+                        <Image
+                            src='/images/CyM-Logo1.png'
+                            alt='CyM'
+                            width={32}
+                            height={32}
+                            className='size-8 object-contain'
+                            priority
+                        />
                     )}
                 </Link>
 
@@ -118,7 +123,6 @@ export default function Sidebar({
                                         icon={item.icon}
                                         label={item.title}
                                         href={item.url}
-                                        items={item.items}
                                         collapsed={!isSidebarOpen}
                                         onItemClick={onItemClick}
                                     />
@@ -128,31 +132,6 @@ export default function Sidebar({
                     ))}
                 </CollapsibleGroup>
             </nav>
-
-            {/* Footer — only visible when expanded */}
-            {isSidebarOpen && (
-                <div className='px-4 py-4'>
-                    <div className='rounded-2xl bg-background-gray-primary px-4 py-5 text-center'>
-                        <p className='mb-2 leading-6 font-semibold text-text-primary'>
-                            Upgrade to Pro
-                        </p>
-                        <small className='text-sm leading-5 tracking-[-0.15px] text-text-tertiary'>
-                            Get all dashboard and 200+ essential UI elements
-                        </small>
-                        <Link
-                            href='https://nextadmin.co/pricing'
-                            className={buttonStyles({
-                                size: 'lg',
-                                className: 'mt-4 h-10 w-full bg-brand-500',
-                            })}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                        >
-                            Upgrade to Pro
-                        </Link>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

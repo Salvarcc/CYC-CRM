@@ -57,24 +57,6 @@ export default function SearchBar() {
                         icon: item.icon,
                     });
                 }
-
-                if (item.items && item.items.length > 0) {
-                    item.items.forEach((subItem) => {
-                        if (subItem.url) {
-                            if (!sectionsMap[sectionLabel]) {
-                                sectionsMap[sectionLabel] = [];
-                            }
-                            sectionsMap[sectionLabel].push({
-                                id: subItem.url,
-                                title: subItem.title,
-                                parentTitle: item.title,
-                                section: sectionLabel,
-                                url: subItem.url,
-                                icon: item.icon,
-                            });
-                        }
-                    });
-                }
             });
         });
 

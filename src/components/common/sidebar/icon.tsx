@@ -345,6 +345,38 @@ export function TaskIcon() {
   );
 }
 
+export function InventoryIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 18 18" fill="none">
+      <path d="M2.25 7.5L9 3.75L15.75 7.5L9 11.25L2.25 7.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M15.75 7.5V12.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M2.25 7.5V12.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M9 11.25V15.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M5.25 9.375V14.25C5.25 14.25 6.75 15.75 9 15.75C11.25 15.75 12.75 14.25 12.75 14.25V9.375" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function QuoteIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 18 18" fill="none">
+      <path d="M6.75 10.5H4.5M4.5 10.5H3V8.25M4.5 10.5V12.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11.25 7.5H13.5M13.5 7.5H15V9.75M13.5 7.5V5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="1.5" y="1.5" width="15" height="15" rx="3" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+export function SalesIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 18 18" fill="none">
+      <path d="M1.5 6.75L9 3L16.5 6.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 3V14.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M3.75 7.875V13.5C3.75 13.5 5.625 15.75 9 15.75C12.375 15.75 14.25 13.5 14.25 13.5V7.875" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function AuthIcon() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 18 18" fill="none">
@@ -362,6 +394,16 @@ export function AuthIcon() {
           <rect width={18} height={18} rx={5} fill="#fff" />
         </clipPath>
       </defs>
+    </svg>
+  );
+}
+
+export function CurrencyIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 18 18" fill="none">
+      <circle cx={9} cy={9} r={7.5} stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9 4.5V13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M11.25 6.75C11.25 5.50736 10.2426 4.5 9 4.5C7.75736 4.5 6.75 5.50736 6.75 6.75C6.75 7.99264 7.75736 9 9 9C10.2426 9 11.25 10.0074 11.25 11.25C11.25 12.4926 10.2426 13.5 9 13.5C7.75736 13.5 6.75 12.4926 6.75 11.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }

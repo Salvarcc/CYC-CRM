@@ -1,18 +1,17 @@
 :root {
   --primary-50: var(--primary-50);
-  --primary-100: #dae2ff;
-  --primary-200: #becdff;
-  --primary-300: #91aeff;
-  --primary-400: #5e84fc;
-  --primary-500: #3758f9;
-  --primary-600: #2237ee;
-  --primary-700: #1a25db;
-  --primary-800: #1c20b1;
-  --primary-900: #1c228c;
-  --primary-950: #161755;
+  --primary-100: #fde4e5;
+  --primary-200: #f9b8ba;
+  --primary-300: #f28084;
+  --primary-400: #e64b50;
+  --primary-500: #b7131a;
+  --primary-600: #9a0f15;
+  --primary-700: #7d0c10;
+  --primary-800: #60090c;
+  --primary-900: #430608;
+  --primary-950: #260404;
 
-  --primary-text: white;
-  --neutral-brand-color: #465fff;
+  --neutral-brand-color: #b7131a;
 
   /* Text Color */
   --text-50: #374151;
@@ -73,10 +72,10 @@
   /* ======== Button Color =========*/
 
   /* Primary */
-  --button-primary-background: #5750f1;
-  --button-primary-hover-background: #3c35d8;
+  --button-primary-background: #b7131a;
+  --button-primary-hover-background: #9a0f15;
   --button-primary-text: #ffffff;
-  --button-primary-focus-ring: rgba(87, 80, 241, 0.2);
+  --button-primary-focus-ring: rgba(183, 19, 26, 0.2);
 
   /* Outline */
   --button-outline-background: #ffffff;
@@ -489,12 +488,12 @@
   --background-gray-quaternary: #d4d4d8;
 
   /* general color */
-  --brand-100: #e0e7ff;
-  --brand-200: #c7d2fe;
-  --brand-300: #a5b4fc;
-  --brand-400: #818cf8;
-  --brand-500: #5750f1;
-  --brand-600: #3c35d8;
+  --brand-100: #fde4e5;
+  --brand-200: #f9b8ba;
+  --brand-300: #f28084;
+  --brand-400: #e64b50;
+  --brand-500: #b7131a;
+  --brand-600: #9a0f15;
   --base-white: #ffffff;
   --green-600: #16a34a;
   --red-600: #dc2626;

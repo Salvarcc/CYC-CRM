@@ -1,7 +1,7 @@
 import { NAV_DATA } from "./data";
 
 /**
- * Checks if the current pathname matches the target href, or if the pathname is a subpath of the target href.=
+ * Checks if the current pathname matches the target href, or if the pathname is a subpath of the target href.
  */
 export function isPathActive(href: string, pathname: string): boolean {
   if (!href) return false;
@@ -20,9 +20,8 @@ export function isPathActive(href: string, pathname: string): boolean {
 export function findActiveGroupKey(pathname: string): string | null {
   for (const section of NAV_DATA) {
     for (const item of section.items) {
-      if (item.items && item.items.length > 0) {
-        const hasMatch = item.items.some((child) => child.url && isPathActive(child.url, pathname));
-        if (hasMatch) return item.title;
+      if (item.url && isPathActive(item.url, pathname)) {
+        return section.label;
       }
     }
   }
