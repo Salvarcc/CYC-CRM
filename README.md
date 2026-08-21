@@ -1,111 +1,52 @@
-# CYC CRM — Cotizador y Configurador de Equipos
+# CyM — Tienda y Cotizador de PCs
 
-Sistema CRM con módulo de PC Builder para el catálogo de productos CyM. Permite armar computadoras de escritorio validando compatibilidad de hardware en tiempo real.
+![Next.js](https://img.shields.io/badge/Next.js-16-black) ![React](https://img.shields.io/badge/React-19-61dafb) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6) ![Prisma](https://img.shields.io/badge/Prisma-7-2d3748) ![PostgreSQL](https://img.shields.io/badge/Neon-PostgreSQL-00e599)
+
+Plataforma e-commerce para **CyM**: tienda de componentes de PC, configurador con validación de compatibilidad en tiempo real, cotizador con exportación a PDF y panel administrativo interno.
+
+## ¿Qué hace?
+
+### Para el cliente
+
+- **Catálogo** — componentes reales (CPU, placas madre, RAM, GPU, refrigeración, gabinetes, fuentes) con filtros por categoría, marca y precio, búsqueda, ordenamiento y paginación.
+- **Configurador de PC** — asistente de 7 pasos que valida la compatibilidad del hardware en cascada mientras armas tu equipo: socket CPU↔placa, tipo de memoria, espacio físico de la GPU, potencia de la fuente, y más. Los pasos incompatibles desaparecen; los opcionales se marcan solos.
+- **Cotización** — resumen profesional de tu build con consumo estimado en watts, precios convertibles entre USD y PEN con tipo de cambio real, envío por WhatsApp, correo o descarga en PDF.
+- **Carrito de compras** — para comprar componentes sueltos.
+
+### Para el negocio
+
+Panel ERP interno con gestión de inventario, clientes, ventas, cotizaciones y tipo de cambio, más carga de imágenes a Cloudinary.
 
 ## Stack
 
-- **Frontend:** Next.js 16 (App Router) + React 19 + TypeScript
-- **Estilos:** Tailwind CSS v4
-- **UI:** React Aria Components, Recharts, TanStack Table, Sonner
-- **Backend:** Prisma 7 + Neon (PostgreSQL serverless)
-- **Driver adapter:** `@prisma/adapter-pg`
-
-## Modelo de datos
-
-7 componentes de hardware con sus atributos de compatibilidad:
-
-| Modelo | Descripción |
+| Capa | Tecnología |
 |---|---|
-| **Cpu** | Socket, tipoMemoria, TDP, gráficos integrados |
-| **Motherboard** | Socket, tipoMemoria, factorForma, slots RAM |
-| **Ram** | TipoMemoria, factorForma, capacidad, frecuencia |
-| **Gpu** | VRAM, consumo recomendado de fuente, largo físico |
-| **Cooler** | Sockets soportados, TDP disipado, tipo refrigeración |
-| **Case** | Factores de forma, espacio GPU, fuente integrada |
-| **Psu** | Potencia, certificación 80+, modularidad |
+| Frontend | Next.js 16 (App Router) · React 19 · TypeScript |
+| Estilos | Tailwind CSS v4 · Design tokens Material Design 3 |
+| UI | React Aria Components · Recharts · TanStack Table · Sonner |
+| Backend | Next.js API Routes · Prisma 7 |
+| Base de datos | Neon (PostgreSQL serverless) |
+| Imágenes | Cloudinary |
 
-## API REST (CRUD)
+## Compatibilidad inteligente
 
-Cada modelo expone los siguientes endpoints:
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/api/{modelo}` | Listar todos |
-| `POST` | `/api/{modelo}` | Crear nuevo |
-| `GET` | `/api/{modelo}/[id]` | Obtener por ID |
-| `PUT` | `/api/{modelo}/[id]` | Actualizar |
-| `DELETE` | `/api/{modelo}/[id]` | Eliminar |
-
-Modelos disponibles: `cpu`, `motherboard`, `ram`, `gpu`, `cooler`, `case`, `psu`
-
-## Instalación
-
-```bash
-git clone https://github.com/Salvarcc/CYC-CRM.git
-cd CYC-CRM
-npm install
-```
-
-## Variables de entorno
-
-Configurar el archivo `.env`:
-
-```env
-DATABASE_URL="postgresql://usuario:password@host/neondb?sslmode=require"
-```
-
-## Desarrollo
-
-```bash
-npm run dev
-```
-
-Abrir [http://localhost:3000](http://localhost:3000).
-
-## Base de datos
-
-Sincronizar el schema con Neon:
-
-```bash
-npx prisma db push      # aplicar cambios al schema
-npx prisma generate     # regenerar el cliente Prisma
-npx prisma studio       # GUI para inspeccionar datos
-```
-
-## Estructura del proyecto
+El corazón del producto es el motor de compatibilidad del configurador:
 
 ```
-src/
-  app/
-    api/                    # endpoints CRUD
-      cpu/ [id]/
-      motherboard/ [id]/
-      ram/ [id]/
-      gpu/ [id]/
-      cooler/ [id]/
-      case/ [id]/
-      psu/ [id]/
-    (with-layouts)/         # rutas con layout compartido
-  lib/
-    prisma.ts               # singleton PrismaClient
-  components/
-    tailgrids/core/         # primitivos de diseño
-prisma/
-  schema.prisma             # modelo de datos
+CPU ──define──▶ Socket · Memoria · TDP
+Motherboard ──filtra por──▶ Socket del CPU
+RAM ──filtra por──▶ Tipo de memoria de la placa
+Cooler ──filtra por──▶ Sockets soportados + TDP ≥ CPU
+Case ──filtra por──▶ Factor de forma + largo GPU + ventiladores
+PSU ──filtra por──▶ Potencia ≥ (TDP CPU + consumo GPU)
 ```
 
-## Reglas de compatibilidad (PC Builder)
+Al cambiar una selección, los pasos posteriores se invalidan automáticamente para nunca permitir builds incompatibles.
 
-El configurador aplica un filtrado en cascada:
+## Estado del proyecto
 
-1. **CPU** → define socket, tipoMemoria y TDP
-2. **Motherboard** → filtra por socket del CPU
-3. **RAM** → filtra por tipoMemoria de la Motherboard
-4. **GPU** → valida largo contra Case y consumo contra PSU
-5. **Cooler** → obligatorio si el CPU lo requiere; filtra por socket y TDP
-6. **Case** → valida factor de forma, espacio GPU y ventiladores
-7. **PSU** → obligatoria si el Case no incluye fuente; filtra por potencia
+Proyecto en desarrollo activo. Módulo de tienda y configurador operativos; módulos de autenticación de clientes, promociones y modo oscuro en camino.
 
-## Licencia
+---
 
 Proyecto privado — CyM
