@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useCurrency } from "@/hooks/use-currency";
-import { displayPrice, formatPrice } from "@/utils/currency";
+import { displayPrice, formatPrice, toPreferredCurrency } from "@/utils/currency";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -75,7 +75,12 @@ function toBool(val: unknown): boolean {
   return false;
 }
 
-function buildSummaryLines(data: ConfigData, currency: "USD" | "PEN", rate: number): string[] {
+function buildSummaryLines(
+  data: ConfigData,
+  total: number,
+  currency: "USD" | "PEN",
+  rate: number,
+): string[] {
   const lines: string[] = [];
   for (const key of STEP_ORDER) {
     const p = data.selections[key];
@@ -85,7 +90,7 @@ function buildSummaryLines(data: ConfigData, currency: "USD" | "PEN", rate: numb
   }
   lines.push("");
   lines.push(`Consumo estimado: ${data.totalConsumption}W`);
-  lines.push(`Total: ${formatPrice(data.totalPrice, currency)}`);
+  lines.push(`Total: ${formatPrice(total, currency)}`);
   return lines;
 }
 
@@ -113,7 +118,18 @@ export default function CotizacionPage() {
   }, []);
 
   const totalConsumption = data?.totalConsumption ?? 0;
-  const totalPrice = data?.totalPrice ?? 0;
+  /* Recompute total from selections so it follows the active currency */
+  const totalPrice = useMemo(() => {
+    if (!data) return 0;
+    return STEP_ORDER.reduce((sum, k) => {
+      const p = data.selections[k];
+      if (!p) return sum;
+      return (
+        sum +
+        toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta)
+      );
+    }, 0);
+  }, [data, currency, rate.venta]);
   const components = data
     ? STEP_ORDER.filter((k) => data.selections[k]).map((k) => ({
         key: k,
@@ -128,11 +144,28 @@ export default function CotizacionPage() {
       ).padStart(4, "0")}`
     : "#CYM-0000";
 
+  /* ── PDF handler ────────────────────────────────────────────── */
+
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  async function handleDownloadPDF() {
+    if (!data) return;
+    setPdfLoading(true);
+    try {
+      const { generateQuotationPDF } = await import("@/utils/pdf");
+      await generateQuotationPDF(data, currency, rate.venta);
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
   /* ── WhatsApp handler ─────────────────────────────────────────── */
 
   function handleWhatsApp() {
     if (!data) return;
-    const lines = buildSummaryLines(data, currency, rate.venta);
+    const lines = buildSummaryLines(data, totalPrice, currency, rate.venta);
     const text = encodeURIComponent(
       `Hola, me interesa esta configuración de PC:\n\n${lines.join("\n")}\n\n¿Podrían confirmar disponibilidad y precio final?`,
     );
@@ -144,7 +177,7 @@ export default function CotizacionPage() {
   function handleEmail(e: React.FormEvent) {
     e.preventDefault();
     if (!data || !email) return;
-    const lines = buildSummaryLines(data, currency, rate.venta);
+    const lines = buildSummaryLines(data, totalPrice, currency, rate.venta);
     const subject = encodeURIComponent(
       `Cotización PC — ${quotationId}`,
     );
@@ -319,7 +352,7 @@ export default function CotizacionPage() {
                     <th className="hidden px-5 py-3 md:table-cell">
                       Detalle Técnico
                     </th>
-                    <th className="px-5 py-3 text-right">Precio (USD)</th>
+                    <th className="px-5 py-3 text-right">Precio ({currency})</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
@@ -507,6 +540,20 @@ export default function CotizacionPage() {
                   chat
                 </span>
                 Enviar por WhatsApp
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                disabled={pdfLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-semibold transition-all hover:bg-[var(--store-surface-container-low)] disabled:opacity-50"
+                style={{
+                  borderColor: "var(--store-outline-variant)",
+                  color: "var(--store-on-surface)",
+                }}
+              >
+                <span className="material-symbols-outlined text-base">
+                  {pdfLoading ? "hourglass_empty" : "download"}
+                </span>
+                {pdfLoading ? "Generando PDF..." : "Descargar PDF"}
               </button>
               <Link
                 href="/configurador"

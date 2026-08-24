@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCart } from "@/hooks/use-cart";
 import { useCurrency } from "@/hooks/use-currency";
 import { displayPrice } from "@/utils/currency";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -65,6 +67,7 @@ function getTags(p: Product): string[] {
 
 export default function TiendaPage() {
   const { currency, rate } = useCurrency();
+  const { addItem } = useCart();
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +78,7 @@ export default function TiendaPage() {
   const [sortBy, setSortBy] = useState("relevancia");
   const [maxPrice, setMaxPrice] = useState(5000);
   const [page, setPage] = useState(1);
-  const PER_PAGE = 12;
+  const PER_PAGE = 15;
 
   useEffect(() => {
     async function load() {
@@ -214,7 +217,7 @@ export default function TiendaPage() {
               className="flex w-full items-center justify-between text-left text-sm font-semibold uppercase tracking-wide"
               style={{ color: "var(--store-on-surface)" }}
             >
-              Precio (USD)
+              Precio ({currency})
               <span className="material-symbols-outlined text-lg">expand_more</span>
             </button>
             <div className="mt-4 px-1">
@@ -228,8 +231,10 @@ export default function TiendaPage() {
                   setMaxPrice(Number(e.target.value));
                   setPage(1);
                 }}
-                className="h-1 w-full cursor-pointer appearance-none rounded-lg"
-                style={{ accentColor: "var(--store-primary)" }}
+                className="w-full cursor-pointer"
+                style={{
+                  ["--range-fill" as string]: `${(maxPrice / 5000) * 100}%`,
+                }}
               />
               <div className="mt-2 flex justify-between text-xs font-medium">
                 <span style={{ color: "var(--store-on-surface-variant)" }}>$0</span>
@@ -293,7 +298,7 @@ export default function TiendaPage() {
               color: "var(--store-on-primary)",
             }}
           >
-            Arma tu PC
+            Cotiza tu PC
           </a>
         </div>
       </aside>
@@ -453,6 +458,18 @@ export default function TiendaPage() {
                       </div>
                       <button
                         disabled={isOutOfStock}
+                        onClick={() => {
+                          addItem({
+                            id: product.id,
+                            nombre: product.nombre,
+                            marca: product.marca,
+                            precio: product.precio ?? 0,
+                            moneda: product.moneda,
+                            imagenUrl: product.imagenUrl,
+                            category: product.category,
+                          });
+                          toast.success(`${product.nombre} agregado al carrito`);
+                        }}
                         className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                         style={{
                           backgroundColor: isOutOfStock

@@ -1,52 +1,94 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
+import { useCart } from "@/hooks/use-cart";
 import { useCurrency } from "@/hooks/use-currency";
-import { formatPrice } from "@/utils/currency";
+import { convertPrice, formatPrice, type Currency } from "@/utils/currency";
 
-const items = [
-  {
-    id: 1,
-    name: "NVIDIA GeForce RTX 4090 Founders Edition",
-    detail: "GDDR6X · 24GB · 450W TDP",
-    price: 8499,
-    qty: 1,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCYRZT-KLw1OMsV_DONhVJ6MR7jMUiJjWarES5uWk2SHnRfnvvAaPmf1HjfCD_YawmRRrepkonIOtwGTtz4ZRISdsIOsthzbfCeLQ1GresmEKZQ3tuR_kOGFG7a7ptSf5DoCbEzoP5BrTLdMEM8S2klgsL81JF5JQBbut39I2Z_i7Ppq6wfwyKf45ZJ0cpqecLj6z-vtB1kp-omz4_Xowvam_0Agli_B6EzZ8rsCb0hVj_V-kyWG4LA",
-  },
-  {
-    id: 2,
-    name: "AMD Radeon RX 7800 XT Gaming OC",
-    detail: "GDDR6 · 16GB · 263W TDP",
-    price: 2699,
-    qty: 1,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDbcfYfUZa8MUCg1J5SQtVFFkGmpg6B1t0q3r5osOTe16rahzVHFoKNkVb96dnnmqYjX0_0WEjqEsbCeRb-Np5Rp0NGHqMhscSu07JnDKaQa9B8leQ3VyAN3SV6nA9BuDjfKlHR9YpJWVrbvG_V99NqpIpAFPx2921fXZj4xWFzxj5dRt7zJsQR9gALYyB8v_v2yliegvsEUCzO4rgQrmu6TqoLcHhYAmhNAzBU0xQRda3wIgNCW-I_",
-  },
-  {
-    id: 3,
-    name: "ASUS TUF Gaming GeForce RTX 4070 Ti",
-    detail: "GDDR6X · 12GB · 300W TDP",
-    price: 4150,
-    qty: 1,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAaODsjGQRlzO8NXU0Pe4YZAmQPvSW7AuZOn7Nw0ubvWxXdoTlMwhAHZfmPLvM4-6NPl-Q0-3RPRJ9jtv592GJgNgcxX86L5YP9lP8uho56ppgziNOX3Vmh_6AeYHreNCf09TK3NM7eMigORjQ5O1JyX-OK4bMGOBl2x-_Kxa53eedZU7u_AQGT4yrAM0FTG487_8g_XS58rfGBReQqPjZ0dAAsjU-khg2k6N0D5NDgPeWADtCLuEPe",
-  },
-];
+const PLACEHOLDER_IMG =
+  "https://placehold.co/400x400/f3f4f6/6b7280?text=PC+Component";
 
 export default function CarritoPage() {
-  const { currency } = useCurrency();
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const { items, updateQuantity, removeItem, clearCart } = useCart();
+  const { currency, rate } = useCurrency();
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  function itemPrice(price: number, moneda: string): number {
+    return convertPrice(price, (moneda === "PEN" ? "PEN" : "USD") as Currency, currency, rate.venta);
+  }
+
+  const subtotal = items.reduce((s, i) => s + itemPrice(i.precio, i.moneda) * i.qty, 0);
   const igv = Math.round(subtotal * 0.18);
   const total = subtotal + igv;
 
+  /* ── PDF handler ─────────────────────────────────────────────── */
+
+  async function handleDownloadPDF() {
+    if (items.length === 0) return;
+    setPdfLoading(true);
+    try {
+      const { generateCartPDF } = await import("@/utils/pdf");
+      await generateCartPDF(items, currency, rate.venta);
+    } catch (err) {
+      console.error("Error generating cart PDF:", err);
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 px-4 py-24">
+        <span
+          className="material-symbols-outlined text-6xl"
+          style={{ color: "var(--store-on-surface-variant)" }}
+        >
+          shopping_cart
+        </span>
+        <h2
+          className="text-2xl font-bold"
+          style={{ color: "var(--store-on-surface)" }}
+        >
+          Tu carrito está vacío
+        </h2>
+        <p
+          className="text-sm"
+          style={{ color: "var(--store-on-surface-variant)" }}
+        >
+          Agrega productos desde el catálogo para comenzar.
+        </p>
+        <Link
+          href="/tienda"
+          className="mt-2 rounded-lg px-6 py-2 text-sm font-semibold transition-all hover:scale-95"
+          style={{
+            backgroundColor: "var(--store-primary)",
+            color: "var(--store-on-primary)",
+          }}
+        >
+          Ir a la Tienda
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full px-4 py-10 md:px-8">
-      <h1
-        className="mb-8 text-3xl font-bold"
-        style={{ color: "var(--store-on-surface)" }}
-      >
-        Carrito de Compras
-      </h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1
+          className="text-3xl font-bold"
+          style={{ color: "var(--store-on-surface)" }}
+        >
+          Carrito de Compras
+        </h1>
+        <button
+          onClick={clearCart}
+          className="text-xs font-semibold transition-colors hover:text-[var(--store-error)]"
+          style={{ color: "var(--store-on-surface-variant)" }}
+        >
+          Vaciar carrito
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* ── Items Table ───────────────────────────────────── */}
@@ -86,9 +128,9 @@ export default function CarritoPage() {
                     style={{ backgroundColor: "var(--store-surface-container-low)" }}
                   >
                     <img
-                      alt={item.name}
+                      alt={item.nombre}
                       className="h-full w-full object-contain p-2"
-                      src={item.image}
+                      src={item.imagenUrl || PLACEHOLDER_IMG}
                     />
                   </div>
                   <div className="flex flex-1 flex-col justify-between">
@@ -97,18 +139,19 @@ export default function CarritoPage() {
                         className="text-sm font-semibold md:text-base"
                         style={{ color: "var(--store-on-surface)" }}
                       >
-                        {item.name}
+                        {item.nombre}
                       </h3>
                       <p
                         className="mt-1 text-xs"
                         style={{ color: "var(--store-on-surface-variant)" }}
                       >
-                        {item.detail}
+                        {item.marca} · {item.category}
                       </p>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => updateQuantity(item.id, item.qty - 1)}
                           className="flex h-7 w-7 items-center justify-center rounded border text-xs font-bold transition-colors hover:bg-[var(--store-surface-container-low)]"
                           style={{
                             borderColor: "var(--store-outline-variant)",
@@ -124,7 +167,9 @@ export default function CarritoPage() {
                           {item.qty}
                         </span>
                         <button
-                          className="flex h-7 w-7 items-center justify-center rounded border text-xs font-bold transition-colors hover:bg-[var(--store-surface-container-low)]"
+                          onClick={() => updateQuantity(item.id, item.qty + 1)}
+                          disabled={item.qty >= 10}
+                          className="flex h-7 w-7 items-center justify-center rounded border text-xs font-bold transition-colors hover:bg-[var(--store-surface-container-low)] disabled:opacity-40"
                           style={{
                             borderColor: "var(--store-outline-variant)",
                             color: "var(--store-on-surface)",
@@ -133,6 +178,7 @@ export default function CarritoPage() {
                           +
                         </button>
                         <button
+                          onClick={() => removeItem(item.id)}
                           className="ml-2 text-xs transition-colors hover:text-[var(--store-error)]"
                           style={{ color: "var(--store-on-surface-variant)" }}
                         >
@@ -145,7 +191,7 @@ export default function CarritoPage() {
                         className="text-lg font-bold"
                         style={{ color: "var(--store-primary)" }}
                       >
-                        {formatPrice(item.price * item.qty, currency)}
+                        {formatPrice(itemPrice(item.precio, item.moneda) * item.qty, currency)}
                       </span>
                     </div>
                   </div>
@@ -230,7 +276,9 @@ export default function CarritoPage() {
             </button>
 
             <button
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-semibold transition-all hover:bg-[var(--store-surface-container-low)]"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-semibold transition-all hover:bg-[var(--store-surface-container-low)] disabled:pointer-events-none disabled:opacity-60"
+              disabled={pdfLoading}
+              onClick={handleDownloadPDF}
               style={{
                 borderColor: "var(--store-outline-variant)",
                 color: "var(--store-primary)",
@@ -239,7 +287,7 @@ export default function CarritoPage() {
               <span className="material-symbols-outlined text-base">
                 picture_as_pdf
               </span>
-              Descargar PDF
+              {pdfLoading ? "Generando PDF..." : "Descargar PDF"}
             </button>
           </div>
 

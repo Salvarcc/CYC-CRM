@@ -71,8 +71,25 @@
 }
 
 /* ── Scoped utilities ──────────────────────────────────────── */
-/* ── Scroll override: root layout sets overflow-hidden on html/body,
-     so the store needs to re-enable scrolling on the wrapper. ── */
+/* ── Scrollbar ─────────────────────────────────────────────── */
+/* Fallbacks literales: los pseudo-elementos de scroll de html/body
+   no heredan las custom properties definidas en .store-root.      */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--store-surface-container, #eceef0);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--store-outline, #906f6c);
+  border-radius: 8px;
+  border: 2px solid var(--store-surface-container, #eceef0);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--store-on-surface-variant, #5b403d);
+}
 .store-root {
   overflow: auto;
   height: 100%;
@@ -126,4 +143,48 @@
 .store-root .badge-tech {
   background-color: #e0f2fe;
   color: #0369a1;
+}
+
+/* ── Range slider (filtro de precio del catálogo) ─────────── */
+.store-root input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  background: linear-gradient(
+    to right,
+    var(--store-primary) var(--range-fill, 50%),
+    var(--store-surface-container-high) var(--range-fill, 50%)
+  );
+}
+.store-root input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid var(--store-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.store-root input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--store-primary) var(--range-fill, 50%),
+    var(--store-surface-container-high) var(--range-fill, 50%)
+  );
+}
+.store-root input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid var(--store-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
 }

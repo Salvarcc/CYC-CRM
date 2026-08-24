@@ -56,3 +56,8 @@ REQUERIMIENTOS.md
 CONTEXTO.md
 PENDIENTES.md
 PRODUCTOS.md
+
+# Dev tooling artifacts
+dev-server.log
+.playwright-mcp/
+graphify-out/

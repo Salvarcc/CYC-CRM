@@ -1,6 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { SessionProvider } from "next-auth/react";
+
+import { AuthButton } from "@/components/common/auth-button";
+import { CartProvider, useCart } from "@/hooks/use-cart";
 import { CurrencyProvider, useCurrency } from "@/hooks/use-currency";
 import "../css/store.css";
 
@@ -24,7 +30,44 @@ function CurrencySwitcher() {
   );
 }
 
+function CartButton() {
+  const { totalItems } = useCart();
+
+  return (
+    <Link
+      href="/carrito"
+      className="relative transition-colors"
+      style={{ color: "var(--store-on-surface-variant)" }}
+    >
+      <span className="material-symbols-outlined">shopping_cart</span>
+      {totalItems > 0 && (
+        <span
+          className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
+          style={{
+            backgroundColor: "var(--store-primary)",
+            color: "var(--store-on-primary)",
+          }}
+        >
+          {totalItems > 99 ? "99+" : totalItems}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function StoreShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  /* ── Limpieza de configuración al salir ──────────────────────
+     La configuración del PC solo debe persistir mientras el usuario
+     esté en /configurador o /cotizacion. Si navega a cualquier otra
+     página (tienda, carrito, etc.) se elimina del localStorage.    */
+  useEffect(() => {
+    if (pathname !== "/configurador" && pathname !== "/cotizacion") {
+      localStorage.removeItem("cym-configuracion");
+    }
+  }, [pathname]);
+
   return (
     <div className="store-root">
       {/* ── Navbar ─────────────────────────────────────────── */}
@@ -50,7 +93,6 @@ function StoreShell({ children }: { children: React.ReactNode }) {
             {[
               { href: "/tienda", label: "Tienda" },
               { href: "/tienda", label: "Promociones" },
-              { href: "/tienda", label: "Soporte" },
               { href: "/tienda", label: "Nosotros" },
             ].map((item) => (
               <Link
@@ -84,20 +126,10 @@ function StoreShell({ children }: { children: React.ReactNode }) {
                 color: "var(--store-on-primary)",
               }}
             >
-              Arma tu PC
+              Cotiza tu PC
             </Link>
-            <button
-              className="transition-colors"
-              style={{ color: "var(--store-on-surface-variant)" }}
-            >
-              <span className="material-symbols-outlined">shopping_cart</span>
-            </button>
-            <button
-              className="hidden transition-colors sm:block"
-              style={{ color: "var(--store-on-surface-variant)" }}
-            >
-              <span className="material-symbols-outlined">person</span>
-            </button>
+            <CartButton />
+            <AuthButton />
             <button
               className="transition-colors md:hidden"
               style={{ color: "var(--store-on-surface-variant)" }}
@@ -171,8 +203,12 @@ export default function StoreLayout({
   children: React.ReactNode;
 }) {
   return (
-    <CurrencyProvider>
-      <StoreShell>{children}</StoreShell>
-    </CurrencyProvider>
+    <SessionProvider>
+      <CurrencyProvider>
+        <CartProvider>
+          <StoreShell>{children}</StoreShell>
+        </CartProvider>
+      </CurrencyProvider>
+    </SessionProvider>
   );
 }

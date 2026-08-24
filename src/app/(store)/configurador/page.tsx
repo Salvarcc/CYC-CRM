@@ -576,6 +576,7 @@ export default function ConfiguradorPage() {
               nombre: p.nombre,
               marca: p.marca,
               precio: p.precio,
+              moneda: p.moneda,
               category: p.category,
               categoryKey: p.categoryKey,
               imagenUrl: p.imagenUrl,
@@ -1111,7 +1112,7 @@ export default function ConfiguradorPage() {
                   >
                     <div className="flex items-center gap-2.5">
                       <div
-                        className="flex h-9 w-9 items-center justify-center rounded-lg"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden"
                         style={{
                           backgroundColor: item
                             ? `${color}18`
@@ -1119,9 +1120,18 @@ export default function ConfiguradorPage() {
                           color: item ? color : "var(--store-on-surface-variant)",
                         }}
                       >
-                        <span className="material-symbols-outlined text-base">
-                          {s.icon}
-                        </span>
+                        {item?.imagenUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.imagenUrl}
+                            alt={item.nombre}
+                            className="h-full w-full object-contain p-0.5"
+                          />
+                        ) : (
+                          <span className="material-symbols-outlined text-base">
+                            {s.icon}
+                          </span>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p
