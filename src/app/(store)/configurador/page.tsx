@@ -165,7 +165,7 @@ function buildTags(p: Product): string[] {
 
 async function fetchAllProducts(): Promise<Product[]> {
   try {
-    const res = await fetch("/api/products?inStock=true");
+    const res = await fetch("/api/products?inStock=true&cotizador=true");
     if (!res.ok) return [];
     const data: Product[] = await res.json();
     return data;

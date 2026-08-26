@@ -94,6 +94,16 @@ export function AuthButton() {
               {correo}
             </p>
           </div>
+          <Link
+            href="/cotizaciones"
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-[var(--store-surface-container-low)]"
+            role="menuitem"
+            onClick={() => setMenuAbierto(false)}
+            style={{ color: "var(--store-on-surface)" }}
+          >
+            <span className="material-symbols-outlined text-base">bookmark</span>
+            Mis Cotizaciones
+          </Link>
           <button
             className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors hover:bg-[var(--store-surface-container-low)]"
             onClick={() => signOut({ redirectTo: "/" })}

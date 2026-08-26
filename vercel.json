@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-cotizaciones",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}

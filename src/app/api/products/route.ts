@@ -12,6 +12,8 @@ export interface UnifiedProduct {
   stock: number;
   imagenUrl: string | null;
   createdAt: string;
+  oculto: boolean;
+  cotizador: boolean;
   attrs: Record<string, unknown>;
 }
 
@@ -47,6 +49,8 @@ function toUnified(
     stock: item.stock as number,
     imagenUrl: (item.imagenUrl as string) ?? null,
     createdAt: (item.createdAt as string).toString(),
+    oculto: (item.oculto as boolean) ?? false,
+    cotizador: (item.cotizador as boolean) ?? true,
     attrs,
   };
 }
@@ -56,25 +60,29 @@ export async function GET(request: Request) {
   const category = searchParams.get("category"); // filter by categoryKey
   const inStock = searchParams.get("inStock"); // "true" = only in-stock
   const search = searchParams.get("search"); // search by nombre or marca
+  const includeHidden = searchParams.get("includeHidden"); // "true" = include soft-deleted
+  const cotizadorOnly = searchParams.get("cotizador"); // "true" = only cotizador-enabled
+
+  const whereFilter = includeHidden === "true" ? undefined : { oculto: false };
 
   const queries: [string, Promise<unknown[]>][] = [
-    ["cpu", prisma.cpu.findMany({ orderBy: { createdAt: "desc" } })],
-    ["motherboard", prisma.motherboard.findMany({ orderBy: { createdAt: "desc" } })],
-    ["ram", prisma.ram.findMany({ orderBy: { createdAt: "desc" } })],
-    ["gpu", prisma.gpu.findMany({ orderBy: { createdAt: "desc" } })],
-    ["cooler", prisma.cooler.findMany({ orderBy: { createdAt: "desc" } })],
-    ["case", prisma.case.findMany({ orderBy: { createdAt: "desc" } })],
-    ["psu", prisma.psu.findMany({ orderBy: { createdAt: "desc" } })],
+    ["cpu", prisma.cpu.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
+    ["motherboard", prisma.motherboard.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
+    ["ram", prisma.ram.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
+    ["gpu", prisma.gpu.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
+    ["cooler", prisma.cooler.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
+    ["case", prisma.case.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
+    ["psu", prisma.psu.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
   ];
 
   const ATTR_KEYS: Record<string, string[]> = {
-    cpu: ["socket", "tipoMemoria", "requiereCooler", "tdp", "tieneGraficosIntegrados"],
-    motherboard: ["socket", "tipoMemoria", "factorForma", "ramSlots", "maxMemoriaGB"],
-    ram: ["tipoMemoria", "factorForma", "capacidadGB", "frecuenciaMHz"],
-    gpu: ["vramGB", "consumoRecomendadoFuenteWatts", "largoMm"],
-    cooler: ["socketsSoportados", "tdpSoportadoWatts", "tipoRefrigeracion", "numeroVentiladores"],
-    case: ["soportaFactoresForma", "largoMaxGpuMm", "tieneFuentePoder", "potenciaFuenteWatts", "soportaFanCoolerVentiladores"],
-    psu: ["potenciaWatts", "certificacion80Plus", "esModular", "factorForma"],
+    cpu: ["socket", "tipoMemoria", "requiereCooler", "tdp", "tieneGraficosIntegrados", "subcategoria"],
+    motherboard: ["socket", "tipoMemoria", "factorForma", "ramSlots", "maxMemoriaGB", "subcategoria"],
+    ram: ["tipoMemoria", "factorForma", "capacidadGB", "frecuenciaMHz", "subcategoria"],
+    gpu: ["vramGB", "consumoRecomendadoFuenteWatts", "largoMm", "subcategoria"],
+    cooler: ["socketsSoportados", "tdpSoportadoWatts", "tipoRefrigeracion", "numeroVentiladores", "subcategoria"],
+    case: ["soportaFactoresForma", "largoMaxGpuMm", "tieneFuentePoder", "potenciaFuenteWatts", "soportaFanCoolerVentiladores", "subcategoria"],
+    psu: ["potenciaWatts", "certificacion80Plus", "esModular", "factorForma", "subcategoria"],
   };
 
   // Filter which models to query
@@ -105,6 +113,9 @@ export async function GET(request: Request) {
         p.marca.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q),
     );
+  }
+  if (cotizadorOnly === "true") {
+    products = products.filter((p) => p.cotizador);
   }
 
   return NextResponse.json(products);

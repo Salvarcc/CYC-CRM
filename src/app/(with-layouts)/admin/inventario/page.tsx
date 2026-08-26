@@ -28,7 +28,9 @@ import {
 import { MenuDotsIcon } from "@/utils/icon";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FilterIcon, MinusIcon, PlusIcon, RefreshIcon } from "./icons";
+import { ImageUploader } from "@/components/common/image-uploader/image-uploader";
+import { EyeOffIcon, EyeOnIcon, FilterIcon, MinusIcon, PlusIcon, RefreshIcon } from "./icons";
+import { getSubcategorias } from "./subcategorias";
 
 type BadgeColor =
   | "gray"
@@ -56,6 +58,8 @@ interface Product {
   stock: number;
   imagenUrl: string | null;
   createdAt: string;
+  oculto: boolean;
+  cotizador: boolean;
   attrs: Record<string, unknown>;
 }
 
@@ -118,6 +122,7 @@ function getAddPayload(categoryKey: string, form: Record<string, string>) {
     moneda: form.moneda || "USD",
     stock: form.stock ? parseInt(form.stock, 10) : 0,
     imagenUrl: form.imagenUrl || null,
+    subcategoria: form.subcategoria || null,
   };
 
   switch (categoryKey) {
@@ -212,6 +217,7 @@ export default function InventarioPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      params.set("includeHidden", "true");
       if (activeCategory !== "Todos") {
         const key = CATEGORY_KEY_MAP[activeCategory];
         if (key) params.set("category", key);
@@ -251,6 +257,52 @@ export default function InventarioPage() {
     }
   };
 
+  const handleToggleOculto = async (item: Product) => {
+    const nuevoOculto = !item.oculto;
+    try {
+      const endpoint = getApiEndpoint(item.categoryKey);
+      const res = await fetch(`${endpoint}/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oculto: nuevoOculto }),
+      });
+      if (!res.ok) throw new Error("Error al actualizar visibilidad");
+      setItems((prev) =>
+        prev.map((p) => (p.id === item.id ? { ...p, oculto: nuevoOculto } : p)),
+      );
+      toast.success(
+        nuevoOculto
+          ? `${item.nombre} oculto del catálogo`
+          : `${item.nombre} visible en el catálogo`,
+      );
+    } catch {
+      toast.error("No se pudo actualizar la visibilidad");
+    }
+  };
+
+  const handleToggleCotizador = async (item: Product) => {
+    const nuevo = !item.cotizador;
+    try {
+      const endpoint = getApiEndpoint(item.categoryKey);
+      const res = await fetch(`${endpoint}/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, cotizador: nuevo }),
+      });
+      if (!res.ok) throw new Error("Error al actualizar");
+      setItems((prev) =>
+        prev.map((p) => (p.id === item.id ? { ...p, cotizador: nuevo } : p)),
+      );
+      toast.success(
+        nuevo
+          ? `${item.nombre} habilitado en el cotizador`
+          : `${item.nombre} deshabilitado del cotizador`,
+      );
+    } catch {
+      toast.error("No se pudo actualizar el cotizador");
+    }
+  };
+
   const handleAddProduct = async () => {
     if (!addForm.nombre?.trim()) {
       toast.error("El nombre del producto es obligatorio");
@@ -281,6 +333,7 @@ export default function InventarioPage() {
   const inStock = items.filter((i) => i.stock > 0).length;
   const lowStock = items.filter((i) => i.stock > 0 && i.stock <= 5).length;
   const outOfStock = items.filter((i) => i.stock === 0).length;
+  const ocultos = items.filter((i) => i.oculto).length;
 
   return (
     <div className="mt-6 space-y-5">
@@ -309,7 +362,7 @@ export default function InventarioPage() {
 
       <div className="space-y-5 px-2 lg:px-5">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -381,6 +434,25 @@ export default function InventarioPage() {
                 <div className="flex size-10 items-center justify-center rounded-lg bg-badge-error-background">
                   <span className="text-badge-error-icon-color material-symbols-outlined text-xl">
                     block
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm leading-5 font-medium text-text-tertiary">
+                    Ocultos
+                  </p>
+                  <p className="mt-1 text-2xl leading-8 font-semibold text-text-secondary">
+                    {loading ? "—" : ocultos}
+                  </p>
+                </div>
+                <div className="flex size-10 items-center justify-center rounded-lg bg-background-gray-primary">
+                  <span className="text-icon-tertiary material-symbols-outlined text-xl">
+                    visibility_off
                   </span>
                 </div>
               </div>
@@ -468,6 +540,9 @@ export default function InventarioPage() {
                       Categoría
                     </TableHead>
                     <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
+                      Subcategoría
+                    </TableHead>
+                    <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
                       Marca
                     </TableHead>
                     <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
@@ -488,7 +563,7 @@ export default function InventarioPage() {
                   {items.map((item) => {
                     const status = getStockStatus(item.stock);
                     return (
-                      <TableRow key={item.id} className="[&_td]:border-none">
+                      <TableRow key={item.id} className={`[&_td]:border-none ${item.oculto ? "opacity-50" : ""}`}>
                         <TableCell className="px-6 py-3.5">
                           <div className="flex items-center gap-3">
                             <img
@@ -508,6 +583,9 @@ export default function InventarioPage() {
                         </TableCell>
                         <TableCell className="px-6 py-3.5 text-sm leading-5 text-text-secondary">
                           {item.category}
+                        </TableCell>
+                        <TableCell className="px-6 py-3.5 text-sm leading-5 text-text-secondary">
+                          {(item.attrs.subcategoria as string) || "—"}
                         </TableCell>
                         <TableCell className="px-6 py-3.5 text-sm leading-5 font-medium text-text-primary">
                           {item.marca}
@@ -540,7 +618,40 @@ export default function InventarioPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="px-6 py-3.5">
-                          <div className="flex items-center justify-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={item.cotizador}
+                              aria-label={item.cotizador ? "Deshabilitar del cotizador" : "Habilitar en el cotizador"}
+                              onClick={() => handleToggleCotizador(item)}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+                                item.cotizador
+                                  ? "bg-brand-500"
+                                  : "bg-gray-300"
+                              }`}
+                            >
+                              <span
+                                className={`inline-block size-3.5 rounded-full bg-white shadow-xs transition-transform ${
+                                  item.cotizador
+                                    ? "translate-x-[18px]"
+                                    : "translate-x-[3px]"
+                                }`}
+                              />
+                            </button>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className={`h-7.5 w-8 rounded-lg border-none p-1.5 shadow-xs ${
+                                item.oculto
+                                  ? "text-icon-error hover:text-red-600"
+                                  : "text-icon-secondary hover:text-green-600"
+                              }`}
+                              onPress={() => handleToggleOculto(item)}
+                              aria-label={item.oculto ? "Mostrar en catálogo" : "Ocultar del catálogo"}
+                            >
+                              {item.oculto ? <EyeOffIcon /> : <EyeOnIcon />}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="xs"
@@ -561,7 +672,7 @@ export default function InventarioPage() {
       </div>
 
       {/* ── Agregar Producto Modal ─────────────────────────── */}
-      <Dialog isOpen={addModalOpen} onOpenChange={setAddModalOpen} className="max-w-3xl">
+      <Dialog isOpen={addModalOpen} onOpenChange={setAddModalOpen} className="max-w-5xl">
         {({ close }) => (
           <>
             <DialogHeader>
@@ -631,6 +742,25 @@ export default function InventarioPage() {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-text-primary">
+                      Subcategoría
+                    </label>
+                    <select
+                      className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary disabled:cursor-not-allowed disabled:text-text-tertiary"
+                      value={addForm.subcategoria || ""}
+                      disabled={getSubcategorias(addCategory).length === 0}
+                      onChange={(e) => setAddForm((f) => ({ ...f, subcategoria: e.target.value }))}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {getSubcategorias(addCategory).map((sub) => (
+                        <option key={sub} value={sub}>
+                          {sub}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="grid grid-cols-3 gap-4">
                     <div className="col-span-1">
                       <label className="mb-1 block text-sm font-medium text-text-primary">
@@ -675,14 +805,11 @@ export default function InventarioPage() {
 
                   <div>
                     <label className="mb-1 block text-sm font-medium text-text-primary">
-                      URL de Imagen
+                      Imagen del Producto
                     </label>
-                    <input
-                      type="url"
-                      placeholder="https://..."
-                      className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
+                    <ImageUploader
                       value={addForm.imagenUrl || ""}
-                      onChange={(e) => setAddForm((f) => ({ ...f, imagenUrl: e.target.value }))}
+                      onChange={(url) => setAddForm((f) => ({ ...f, imagenUrl: url }))}
                     />
                   </div>
                 </div>

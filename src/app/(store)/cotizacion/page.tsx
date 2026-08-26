@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { useCurrency } from "@/hooks/use-currency";
 import { displayPrice, formatPrice, toPreferredCurrency } from "@/utils/currency";
 
@@ -100,10 +102,13 @@ function buildSummaryLines(
 
 export default function CotizacionPage() {
   const { currency, rate } = useCurrency();
+  const { data: session } = useSession();
   const [data, setData] = useState<ConfigData | null>(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     try {
@@ -190,6 +195,39 @@ export default function CotizacionPage() {
     );
     setEmailSent(true);
     setTimeout(() => setEmailSent(false), 3000);
+  }
+
+  /* ── Save handler ───────────────────────────────────────────── */
+
+  async function handleSave() {
+    if (!data) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/cotizaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selections: data.selections,
+          totalConsumption: data.totalConsumption,
+          totalPrice,
+          moneda: currency,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Error desconocido" }));
+        toast.error(err.error ?? "No se pudo guardar la cotización.");
+        return;
+      }
+
+      const saved = await res.json();
+      setSaved(true);
+      toast.success(`Cotización ${saved.numero} guardada correctamente.`);
+    } catch {
+      toast.error("Error de red al guardar la cotización.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   /* ── Loading ──────────────────────────────────────────────────── */
@@ -568,6 +606,36 @@ export default function CotizacionPage() {
                 </span>
                 Modificar Configuración
               </Link>
+              {session?.user ? (
+                <button
+                  onClick={handleSave}
+                  disabled={saving || saved}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-semibold transition-all hover:bg-[var(--store-surface-container-low)] disabled:opacity-50"
+                  style={{
+                    borderColor: saved ? "var(--store-success)" : "var(--store-outline-variant)",
+                    color: saved ? "var(--store-success)" : "var(--store-on-surface)",
+                  }}
+                >
+                  <span className="material-symbols-outlined text-base">
+                    {saving ? "hourglass_empty" : saved ? "check_circle" : "bookmark_add"}
+                  </span>
+                  {saving ? "Guardando..." : saved ? "Cotización Guardada" : "Guardar Cotización"}
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-semibold transition-all hover:bg-[var(--store-surface-container-low)]"
+                  style={{
+                    borderColor: "var(--store-outline-variant)",
+                    color: "var(--store-on-surface-variant)",
+                  }}
+                >
+                  <span className="material-symbols-outlined text-base">
+                    login
+                  </span>
+                  Inicia sesión para guardar
+                </Link>
+              )}
             </div>
           </div>
 

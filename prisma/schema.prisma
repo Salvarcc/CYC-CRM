@@ -22,6 +22,9 @@ model Cpu {
   moneda                   String   @default("USD") // USD | PEN
   precio                   Decimal? @db.Decimal(10, 2)
   stock                    Int      @default(0)
+  subcategoria             String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto                   Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador                Boolean  @default(true)  // mostrar en el PC Builder / cotizador
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
@@ -44,6 +47,9 @@ model Motherboard {
   moneda        String   @default("USD") // USD | PEN
   precio        Decimal? @db.Decimal(10, 2)
   stock         Int      @default(0)
+  subcategoria  String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto        Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador     Boolean  @default(true)  // mostrar en el PC Builder / cotizador
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -66,6 +72,9 @@ model Ram {
   moneda         String   @default("USD") // USD | PEN
   precio         Decimal? @db.Decimal(10, 2)
   stock          Int      @default(0)
+  subcategoria   String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto         Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador      Boolean  @default(true)  // mostrar en el PC Builder / cotizador
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -86,6 +95,9 @@ model Gpu {
   moneda                          String   @default("USD") // USD | PEN
   precio                          Decimal? @db.Decimal(10, 2)
   stock                           Int      @default(0)
+  subcategoria                    String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto                          Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador                       Boolean  @default(true)  // mostrar en el PC Builder / cotizador
   createdAt                       DateTime @default(now())
   updatedAt                       DateTime @updatedAt
 
@@ -106,6 +118,9 @@ model Cooler {
   moneda              String   @default("USD") // USD | PEN
   precio              Decimal? @db.Decimal(10, 2)
   stock               Int      @default(0)
+  subcategoria        String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto              Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador           Boolean  @default(true)  // mostrar en el PC Builder / cotizador
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -127,6 +142,9 @@ model Case {
   moneda                        String   @default("USD") // USD | PEN
   precio                        Decimal? @db.Decimal(10, 2)
   stock                         Int      @default(0)
+  subcategoria                  String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto                        Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador                     Boolean  @default(true)  // mostrar en el PC Builder / cotizador
   createdAt                     DateTime @default(now())
   updatedAt                     DateTime @updatedAt
 
@@ -147,6 +165,9 @@ model Psu {
   moneda              String   @default("USD") // USD | PEN
   precio              Decimal? @db.Decimal(10, 2)
   stock               Int      @default(0)
+  subcategoria        String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto              Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador           Boolean  @default(true)  // mostrar en el PC Builder / cotizador
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -165,7 +186,48 @@ model Cliente {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  cotizaciones Cotizacion[]
+
   @@index([nombre])
+}
+
+// ─── Cotización (PC Builder) ────────────────────────────────────────
+
+model Cotizacion {
+  id               String   @id @default(cuid())
+  clienteId        String
+  cliente          Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  numero           String   @unique // #CYM-2026-XXXX
+  totalConsumption Int      // watts estimados
+  totalPrice       Decimal  @db.Decimal(10, 2)
+  moneda           String   @default("USD") // moneda al momento de guardar
+  configuracion    Json     // snapshot completo del configurador (selections + attrs)
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime // createdAt + 3 días
+
+  items CotizacionItem[]
+
+  @@index([clienteId])
+  @@index([expiresAt])
+  @@index([numero])
+}
+
+model CotizacionItem {
+  id           String     @id @default(cuid())
+  cotizacionId String
+  cotizacion   Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  stepKey      String     // cpu | motherboard | ram | gpu | cooler | case | psu
+  productId    String     // ID del producto en su tabla original
+  nombre       String
+  marca        String
+  precio       Decimal?   @db.Decimal(10, 2)
+  moneda       String     @default("USD")
+  imagenUrl    String?
+  category     String     // "Procesador (CPU)", "Placa Madre", etc.
+  categoryKey  String     // cpu, motherboard, ram, etc.
+
+  @@index([cotizacionId])
+  @@index([productId])
 }
 
 // ─── Tipo de Cambio (USD/PEN) ────────────────────────────────────────
