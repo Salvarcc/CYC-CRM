@@ -1,0 +1,64 @@
+// Opciones predefinidas para atributos técnicos del modal "Agregar Producto".
+// Cada categoría tiene sus campos con valores seleccionables en vez de texto libre.
+
+export const SOCKET_OPTIONS = ["AM4", "AM5", "LGA1700", "LGA1851", "LGA1200"];
+
+export const TIPO_MEMORIA_OPTIONS = ["DDR4", "DDR5"];
+
+export const CPU_TDP_OPTIONS = [65, 95, 105, 125, 150, 170, 200];
+
+export const FACTOR_FORMA_OPTIONS = ["ATX", "Micro-ATX", "Mini-ITX", "E-ATX"];
+
+export const RAM_SLOTS_OPTIONS = [2, 4, 6];
+
+export const MAX_MEMORIA_OPTIONS = [32, 64, 128, 192, 256];
+
+export const RAM_CAPACIDAD_OPTIONS = [8, 16, 32, 64, 128];
+
+export const RAM_FRECUENCIA_OPTIONS = [2400, 2666, 3000, 3200, 3600, 4800, 5200, 5600, 6000, 6400];
+
+export const VRAM_OPTIONS = [4, 6, 8, 10, 12, 16, 24];
+
+export const GPU_PSU_REC_OPTIONS = [450, 500, 550, 600, 650, 700, 750, 850, 1000];
+
+export const GPU_LARGO_OPTIONS = [170, 200, 250, 270, 300, 320, 340, 360];
+
+export const COOLER_TDP_OPTIONS = [65, 95, 120, 150, 200, 250, 300, 350];
+
+export const COOLER_VENTILADORES_OPTIONS = [1, 2, 3, 4];
+
+export const CASE_GPU_MAX_OPTIONS = [280, 300, 320, 340, 360, 380, 400, 420];
+
+export const CASE_FAN_SLOTS_OPTIONS = [1, 2, 3, 4, 5, 6];
+
+export const CASE_FUENTE_POTENCIA_OPTIONS = [400, 450, 500, 550, 600, 650, 700];
+
+export const PSU_POTENCIA_OPTIONS = [450, 500, 550, 600, 650, 700, 750, 850, 1000, 1200];
+
+export const CERTIFICACION_80PLUS_OPTIONS = ["Bronze", "Gold", "Platinum", "Titanium"];
+
+export const PSU_FACTOR_FORMA_OPTIONS = ["ATX", "SFX"];
+
+export const TIPO_REFRIGERACION_OPTIONS = ["Aire", "Líquida AIO"];
+
+// Helper para convertir un array de strings (checkboxes) a valor del form
+export function arrayToFormValue(arr: string[]): string {
+  return arr.join(", ");
+}
+
+// Helper para parsear valor del form a array
+export function formValueToArray(val: string | undefined): string[] {
+  if (!val) return [];
+  return val
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+// Helper para toggle un valor en un array de checkboxes
+export function toggleArrayValue(arr: string[], value: string): string[] {
+  if (arr.includes(value)) {
+    return arr.filter((v) => v !== value);
+  }
+  return [...arr, value];
+}

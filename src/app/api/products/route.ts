@@ -25,6 +25,8 @@ const CATEGORY_MAP: Record<string, string> = {
   cooler: "Refrigeración",
   case: "Gabinetes",
   psu: "Fuentes de Poder",
+  ssd: "Almacenamiento SSD",
+  monitor: "Monitores",
 };
 
 function toUnified(
@@ -73,6 +75,8 @@ export async function GET(request: Request) {
     ["cooler", prisma.cooler.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
     ["case", prisma.case.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
     ["psu", prisma.psu.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
+    ["ssd", prisma.ssd.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
+    ["monitor", prisma.monitor.findMany({ where: whereFilter, orderBy: { createdAt: "desc" } })],
   ];
 
   const ATTR_KEYS: Record<string, string[]> = {
@@ -83,6 +87,8 @@ export async function GET(request: Request) {
     cooler: ["socketsSoportados", "tdpSoportadoWatts", "tipoRefrigeracion", "numeroVentiladores", "subcategoria"],
     case: ["soportaFactoresForma", "largoMaxGpuMm", "tieneFuentePoder", "potenciaFuenteWatts", "soportaFanCoolerVentiladores", "subcategoria"],
     psu: ["potenciaWatts", "certificacion80Plus", "esModular", "factorForma", "subcategoria"],
+    ssd: ["capacidadGB", "formato", "interfaz", "lecturaMBs", "escrituraMBs", "subcategoria"],
+    monitor: ["tamano", "resolucion", "tipoPanel", "ratioAspecto", "tiempoRespuestaMs", "tasaRefrescoHz", "puertos", "subcategoria"],
   };
 
   // Filter which models to query

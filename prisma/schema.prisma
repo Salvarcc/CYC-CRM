@@ -154,25 +154,64 @@ model Case {
 // ─── Fuente de Poder (PSU) ──────────────────────────────────────────
 
 model Psu {
-  id                  String   @id @default(cuid())
-  nombre              String
-  marca               String
-  potenciaWatts       Int
-  certificacion80Plus String   // Bronze | Gold | Platinum | Titanium
-  esModular           Boolean
-  factorForma         String   // ATX | SFX
-  imagenUrl           String?
-  moneda              String   @default("USD") // USD | PEN
-  precio              Decimal? @db.Decimal(10, 2)
-  stock               Int      @default(0)
-  subcategoria        String? // Subcategoría del catálogo (PRODUCTOS.md)
-  oculto              Boolean  @default(false) // soft-delete: ocultar del catálogo público
-  cotizador           Boolean  @default(true)  // mostrar en el PC Builder / cotizador
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  nombre               String
+  marca                String
+  potenciaWatts        Int
+  certificacion80Plus  String   @default("Bronze")
+  esModular            Boolean  @default(false)
+  factorForma          String   @default("ATX")
+  moneda               String   @default("USD")
+  imagenUrl            String?
+  precio               Float?
+  stock                Int      @default(0)
+  subcategoria         String?
+  oculto               Boolean  @default(false)
+  cotizador            Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
 
-  @@index([certificacion80Plus])
-  @@index([factorForma])
+model Ssd {
+  id                   String   @id @default(cuid())
+  nombre               String
+  marca                String
+  capacidadGB          Int
+  formato              String
+  interfaz             String?
+  lecturaMBs           Int?
+  escrituraMBs         Int?
+  moneda               String   @default("USD")
+  imagenUrl            String?
+  precio               Float?
+  stock                Int      @default(0)
+  subcategoria         String?
+  oculto               Boolean  @default(false)
+  cotizador            Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Monitor {
+  id                   String   @id @default(cuid())
+  nombre               String
+  marca                String
+  tamano               String
+  resolucion           String
+  tipoPanel            String?
+  ratioAspecto         String?
+  tiempoRespuestaMs    Int?
+  tasaRefrescoHz       Int?
+  puertos              String?
+  moneda               String   @default("USD")
+  imagenUrl            String?
+  precio               Float?
+  stock                Int      @default(0)
+  subcategoria         String?
+  oculto               Boolean  @default(false)
+  cotizador            Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 // ─── Cliente (tienda pública) ────────────────────────────────────────

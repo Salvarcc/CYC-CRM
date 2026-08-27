@@ -26,11 +26,37 @@ import {
   TableRow,
 } from "@/components/tailgrids/core/table";
 import { MenuDotsIcon } from "@/utils/icon";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImageUploader } from "@/components/common/image-uploader/image-uploader";
+import { exportInventoryCsv } from "@/utils/export-csv";
+import { parseCsv, importRows, type ParseResult, type ValidationError } from "@/utils/import-csv";
 import { EyeOffIcon, EyeOnIcon, FilterIcon, MinusIcon, PlusIcon, RefreshIcon } from "./icons";
 import { getSubcategorias } from "./subcategorias";
+import {
+  SOCKET_OPTIONS,
+  TIPO_MEMORIA_OPTIONS,
+  CPU_TDP_OPTIONS,
+  FACTOR_FORMA_OPTIONS,
+  RAM_SLOTS_OPTIONS,
+  MAX_MEMORIA_OPTIONS,
+  RAM_CAPACIDAD_OPTIONS,
+  RAM_FRECUENCIA_OPTIONS,
+  VRAM_OPTIONS,
+  GPU_PSU_REC_OPTIONS,
+  GPU_LARGO_OPTIONS,
+  COOLER_TDP_OPTIONS,
+  COOLER_VENTILADORES_OPTIONS,
+  CASE_GPU_MAX_OPTIONS,
+  CASE_FAN_SLOTS_OPTIONS,
+  CASE_FUENTE_POTENCIA_OPTIONS,
+  PSU_POTENCIA_OPTIONS,
+  CERTIFICACION_80PLUS_OPTIONS,
+  PSU_FACTOR_FORMA_OPTIONS,
+  TIPO_REFRIGERACION_OPTIONS,
+  formValueToArray,
+  toggleArrayValue,
+} from "./technical-attrs";
 
 type BadgeColor =
   | "gray"
@@ -83,6 +109,14 @@ const CATEGORY_KEY_MAP: Record<string, string> = {
   Gabinetes: "case",
   "Fuentes de Poder": "psu",
 };
+
+function groupByCategory(rows: { categoryKey: string }[]) {
+  const groups: Record<string, number> = {};
+  for (const r of rows) {
+    groups[r.categoryKey] = (groups[r.categoryKey] || 0) + 1;
+  }
+  return groups;
+}
 
 const ADD_PRODUCT_CATEGORIES = [
   { value: "cpu", label: "Procesadores" },
@@ -212,6 +246,12 @@ export default function InventarioPage() {
   const [addCategory, setAddCategory] = useState("cpu");
   const [addForm, setAddForm] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [addMode, setAddMode] = useState<"manual" | "csv">("manual");
+  const [csvStep, setCsvStep] = useState<"select" | "preview" | "importing" | "done">("select");
+  const [csvParseResult, setCsvParseResult] = useState<ParseResult | null>(null);
+  const [csvProgress, setCsvProgress] = useState({ current: 0, total: 0 });
+  const [csvResult, setCsvResult] = useState<{ created: number; failed: number; failDetails: { row: number; name: string; error: string }[] } | null>(null);
+  const csvFileRef = useRef<HTMLInputElement>(null);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -329,6 +369,44 @@ export default function InventarioPage() {
     }
   };
 
+  const resetCsv = useCallback(() => {
+    setCsvStep("select");
+    setCsvParseResult(null);
+    setCsvProgress({ current: 0, total: 0 });
+    setCsvResult(null);
+    if (csvFileRef.current) csvFileRef.current.value = "";
+  }, []);
+
+  const handleCsvFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const parsed = parseCsv(text);
+      setCsvParseResult(parsed);
+      setCsvStep("preview");
+    };
+    reader.readAsText(file, "utf-8");
+  }, []);
+
+  const handleCsvImport = useCallback(async () => {
+    if (!csvParseResult?.valid.length) return;
+    setCsvStep("importing");
+    setCsvProgress({ current: 0, total: csvParseResult.valid.length });
+    const res = await importRows(csvParseResult.valid, (current, total) => {
+      setCsvProgress({ current, total });
+    });
+    setCsvResult(res);
+    setCsvStep("done");
+    if (res.failed === 0) {
+      toast.success(`${res.created} productos importados correctamente`);
+    } else {
+      toast.warning(`Importados: ${res.created} | Fallidos: ${res.failed}`);
+    }
+    fetchProducts();
+  }, [csvParseResult, fetchProducts]);
+
   const totalProducts = items.length;
   const inStock = items.filter((i) => i.stock > 0).length;
   const lowStock = items.filter((i) => i.stock > 0 && i.stock <= 5).length;
@@ -347,17 +425,31 @@ export default function InventarioPage() {
             Gestiona el stock de componentes de PC de la tienda.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setAddForm({});
-            setAddCategory("cpu");
-            setAddModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined text-base">add</span>
-          Agregar Producto
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            appearance="outline"
+            className="flex items-center gap-2"
+            onPress={() => {
+              const categoryKey = activeCategory === "Todos" ? "Todos" : (CATEGORY_KEY_MAP[activeCategory] ?? activeCategory);
+              exportInventoryCsv(items, categoryKey);
+              toast.success(`CSV exportado: ${items.length} productos`);
+            }}
+          >
+            <span className="material-symbols-outlined text-base">download</span>
+            Descargar CSV
+          </Button>
+          <Button
+            onClick={() => {
+              setAddForm({});
+              setAddCategory("cpu");
+              setAddModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-base">add</span>
+            Agregar Producto
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-5 px-2 lg:px-5">
@@ -687,34 +779,49 @@ export default function InventarioPage() {
               </div>
             </DialogHeader>
 
-            <DialogBody className="max-h-[60vh] overflow-y-auto">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* Column 1: Basic Info */}
+            <DialogBody className="max-h-[80vh] overflow-y-auto">
+              {/* ── Mode Toggle ── */}
+              <div className="mb-4 inline-flex rounded-lg border border-card-border bg-background-gray-secondary p-0.5">
+                <button
+                  type="button"
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                    addMode === "manual"
+                      ? "bg-background-white-primary text-text-primary shadow-sm"
+                      : "text-text-tertiary hover:text-text-secondary"
+                  }`}
+                  onClick={() => { setAddMode("manual"); resetCsv(); }}
+                >
+                  Ingreso Manual
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                    addMode === "csv"
+                      ? "bg-background-white-primary text-text-primary shadow-sm"
+                      : "text-text-tertiary hover:text-text-secondary"
+                  }`}
+                  onClick={() => { setAddMode("csv"); resetCsv(); }}
+                >
+                  Importar CSV
+                </button>
+              </div>
+
+              {/* ── Manual Mode ── */}
+              {addMode === "manual" && (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                {/* ── Left: Información Básica ── */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
                     Información Básica
                   </h3>
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-text-primary">
-                      Nombre del Producto <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej. AMD Ryzen 7 7800X3D"
-                      className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                      value={addForm.nombre || ""}
-                      onChange={(e) => setAddForm((f) => ({ ...f, nombre: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
                     <div>
                       <label className="mb-1 block text-sm font-medium text-text-primary">
                         Categoría <span className="text-red-500">*</span>
                       </label>
                       <select
-                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
+                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                         value={addCategory}
                         onChange={(e) => {
                           setAddCategory(e.target.value);
@@ -729,507 +836,755 @@ export default function InventarioPage() {
                       </select>
                     </div>
                     <div>
+                      <label className="mb-1 block text-sm font-medium text-text-primary">Subcategoría</label>
+                      <select
+                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary disabled:cursor-not-allowed disabled:text-text-tertiary"
+                        value={addForm.subcategoria || ""}
+                        disabled={getSubcategorias(addCategory).length === 0}
+                        onChange={(e) => setAddForm((f) => ({ ...f, subcategoria: e.target.value }))}
+                      >
+                        <option value="">Seleccionar...</option>
+                        {getSubcategorias(addCategory).map((sub) => (
+                          <option key={sub} value={sub}>
+                            {sub}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-text-primary">
+                        Nombre del Producto <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. AMD Ryzen 7 7800X3D"
+                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                        value={addForm.nombre || ""}
+                        onChange={(e) => setAddForm((f) => ({ ...f, nombre: e.target.value }))}
+                      />
+                    </div>
+                    <div>
                       <label className="mb-1 block text-sm font-medium text-text-primary">
                         Marca <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         placeholder="AMD, Intel, ASUS..."
-                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
+                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                         value={addForm.marca || ""}
                         onChange={(e) => setAddForm((f) => ({ ...f, marca: e.target.value }))}
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-text-primary">
-                      Subcategoría
-                    </label>
-                    <select
-                      className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary disabled:cursor-not-allowed disabled:text-text-tertiary"
-                      value={addForm.subcategoria || ""}
-                      disabled={getSubcategorias(addCategory).length === 0}
-                      onChange={(e) => setAddForm((f) => ({ ...f, subcategoria: e.target.value }))}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {getSubcategorias(addCategory).map((sub) => (
-                        <option key={sub} value={sub}>
-                          {sub}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="col-span-1">
-                      <label className="mb-1 block text-sm font-medium text-text-primary">
-                        Moneda
-                      </label>
-                      <select
-                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                        value={addForm.moneda || "USD"}
-                        onChange={(e) => setAddForm((f) => ({ ...f, moneda: e.target.value }))}
-                      >
-                        <option value="USD">USD ($)</option>
-                        <option value="PEN">PEN (S/.)</option>
-                      </select>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-text-primary">Moneda</label>
+                        <select
+                          className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                          value={addForm.moneda || "USD"}
+                          onChange={(e) => setAddForm((f) => ({ ...f, moneda: e.target.value }))}
+                        >
+                          <option value="USD">USD ($)</option>
+                          <option value="PEN">PEN (S/.)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-text-primary">Precio</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                          value={addForm.precio || ""}
+                          onChange={(e) => setAddForm((f) => ({ ...f, precio: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-text-primary">Stock</label>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                          value={addForm.stock || ""}
+                          onChange={(e) => setAddForm((f) => ({ ...f, stock: e.target.value }))}
+                        />
+                      </div>
                     </div>
-                    <div className="col-span-2">
-                      <label className="mb-1 block text-sm font-medium text-text-primary">
-                        Precio
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                        value={addForm.precio || ""}
-                        onChange={(e) => setAddForm((f) => ({ ...f, precio: e.target.value }))}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-text-primary">Imagen del Producto</label>
+                      <ImageUploader
+                        value={addForm.imagenUrl || ""}
+                        onChange={(url) => setAddForm((f) => ({ ...f, imagenUrl: url }))}
                       />
                     </div>
                   </div>
-
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-text-primary">
-                      Stock Inicial
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                      value={addForm.stock || ""}
-                      onChange={(e) => setAddForm((f) => ({ ...f, stock: e.target.value }))}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-text-primary">
-                      Imagen del Producto
-                    </label>
-                    <ImageUploader
-                      value={addForm.imagenUrl || ""}
-                      onChange={(url) => setAddForm((f) => ({ ...f, imagenUrl: url }))}
-                    />
-                  </div>
                 </div>
 
-                {/* Column 2: Hardware Attributes */}
-                <div className="space-y-4 rounded-lg border border-card-border bg-background-gray-secondary p-4">
+                {/* ── Right: Atributos Técnicos ── */}
+                <div className="space-y-4 rounded-xl bg-background-gray-secondary p-4">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                    Atributos Técnicos
+                    Atributos Técnicos — {ADD_PRODUCT_CATEGORIES.find((c) => c.value === addCategory)?.label}
                   </h3>
 
-                  {/* CPU */}
-                  {addCategory === "cpu" && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Socket</label>
-                          <input
-                            type="text"
-                            placeholder="AM5, LGA1700..."
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.socket || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, socket: e.target.value }))}
-                          />
+                  <div className="space-y-4">
+                    {/* ── CPU ── */}
+                    {addCategory === "cpu" && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Socket</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.socket || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, socket: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {SOCKET_OPTIONS.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tipoMemoria || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tipoMemoria: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {TIPO_MEMORIA_OPTIONS.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
-                          <select
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.tipoMemoria || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, tipoMemoria: e.target.value }))}
-                          >
-                            <option value="">Seleccionar...</option>
-                            <option value="DDR4">DDR4</option>
-                            <option value="DDR5">DDR5</option>
-                          </select>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">TDP (Watts)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tdp || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tdp: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {CPU_TDP_OPTIONS.map((w) => (
+                                <option key={w} value={w}>{w}W</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex flex-col justify-center gap-2 pt-5">
+                            <label className="flex items-center gap-2 text-sm text-text-primary">
+                              <input
+                                type="checkbox"
+                                className="size-4 rounded"
+                                checked={addForm.requiereCooler === "true"}
+                                onChange={(e) =>
+                                  setAddForm((f) => ({ ...f, requiereCooler: e.target.checked ? "true" : "false" }))
+                                }
+                              />
+                              Requiere Cooler
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-text-primary">
+                              <input
+                                type="checkbox"
+                                className="size-4 rounded"
+                                checked={addForm.tieneGraficosIntegrados === "true"}
+                                onChange={(e) =>
+                                  setAddForm((f) => ({
+                                    ...f,
+                                    tieneGraficosIntegrados: e.target.checked ? "true" : "false",
+                                  }))
+                                }
+                              />
+                              Gráficos Integrados
+                            </label>
+                          </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">TDP (Watts)</label>
-                          <input
-                            type="number"
-                            placeholder="120"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.tdp || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, tdp: e.target.value }))}
-                          />
-                        </div>
-                        <div className="flex items-end gap-4">
-                          <label className="flex items-center gap-2 text-sm text-text-primary">
-                            <input
-                              type="checkbox"
-                              className="size-4 rounded"
-                              checked={addForm.requiereCooler === "true"}
-                              onChange={(e) =>
-                                setAddForm((f) => ({ ...f, requiereCooler: e.target.checked ? "true" : "false" }))
-                              }
-                            />
-                            Requiere Cooler
-                          </label>
-                          <label className="flex items-center gap-2 text-sm text-text-primary">
-                            <input
-                              type="checkbox"
-                              className="size-4 rounded"
-                              checked={addForm.tieneGraficosIntegrados === "true"}
-                              onChange={(e) =>
-                                setAddForm((f) => ({
-                                  ...f,
-                                  tieneGraficosIntegrados: e.target.checked ? "true" : "false",
-                                }))
-                              }
-                            />
-                            Gráficos Integrados
-                          </label>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                    )}
 
-                  {/* Motherboard */}
-                  {addCategory === "motherboard" && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Socket</label>
-                          <input
-                            type="text"
-                            placeholder="AM5, LGA1700..."
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.socket || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, socket: e.target.value }))}
-                          />
+                    {/* ── Motherboard ── */}
+                    {addCategory === "motherboard" && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Socket</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.socket || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, socket: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {SOCKET_OPTIONS.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tipoMemoria || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tipoMemoria: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {TIPO_MEMORIA_OPTIONS.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.factorForma || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, factorForma: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {FACTOR_FORMA_OPTIONS.map((f) => (
+                                <option key={f} value={f}>{f}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">RAM Slots</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.ramSlots || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, ramSlots: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {RAM_SLOTS_OPTIONS.map((n) => (
+                                <option key={n} value={n}>{n}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                         <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
+                          <label className="mb-1 block text-sm font-medium text-text-primary">Max Memoria RAM (GB)</label>
                           <select
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.tipoMemoria || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, tipoMemoria: e.target.value }))}
-                          >
-                            <option value="">Seleccionar...</option>
-                            <option value="DDR4">DDR4</option>
-                            <option value="DDR5">DDR5</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
-                          <select
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.factorForma || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, factorForma: e.target.value }))}
-                          >
-                            <option value="">Seleccionar...</option>
-                            <option value="ATX">ATX</option>
-                            <option value="Micro-ATX">Micro-ATX</option>
-                            <option value="Mini-ITX">Mini-ITX</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">RAM Slots</label>
-                          <input
-                            type="number"
-                            placeholder="4"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.ramSlots || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, ramSlots: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Max RAM (GB)</label>
-                          <input
-                            type="number"
-                            placeholder="128"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
+                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary md:w-1/2"
                             value={addForm.maxMemoriaGB || ""}
                             onChange={(e) => setAddForm((f) => ({ ...f, maxMemoriaGB: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* RAM */}
-                  {addCategory === "ram" && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
-                          <select
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.tipoMemoria || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, tipoMemoria: e.target.value }))}
                           >
                             <option value="">Seleccionar...</option>
-                            <option value="DDR4">DDR4</option>
-                            <option value="DDR5">DDR5</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
-                          <select
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.factorForma || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, factorForma: e.target.value }))}
-                          >
-                            <option value="">Seleccionar...</option>
-                            <option value="DIMM">DIMM</option>
-                            <option value="SODIMM">SODIMM</option>
+                            {MAX_MEMORIA_OPTIONS.map((g) => (
+                              <option key={g} value={g}>{g} GB</option>
+                            ))}
                           </select>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB)</label>
-                          <input
-                            type="number"
-                            placeholder="32"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.capacidadGB || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, capacidadGB: e.target.value }))}
-                          />
+                    )}
+
+                    {/* ── RAM ── */}
+                    {addCategory === "ram" && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tipoMemoria || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tipoMemoria: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {TIPO_MEMORIA_OPTIONS.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.factorForma || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, factorForma: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              <option value="DIMM">DIMM</option>
+                              <option value="SODIMM">SODIMM</option>
+                            </select>
+                          </div>
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Frecuencia (MHz)</label>
-                          <input
-                            type="number"
-                            placeholder="6000"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.frecuenciaMHz || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, frecuenciaMHz: e.target.value }))}
-                          />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.capacidadGB || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, capacidadGB: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {RAM_CAPACIDAD_OPTIONS.map((c) => (
+                                <option key={c} value={c}>{c} GB</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Frecuencia (MHz)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.frecuenciaMHz || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, frecuenciaMHz: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {RAM_FRECUENCIA_OPTIONS.map((f) => (
+                                <option key={f} value={f}>{f} MHz</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
-                    </>
-                  )}
+                    )}
 
-                  {/* GPU */}
-                  {addCategory === "gpu" && (
-                    <>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">VRAM (GB)</label>
-                          <input
-                            type="number"
-                            placeholder="12"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.vramGB || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, vramGB: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">PSU Rec. (W)</label>
-                          <input
-                            type="number"
-                            placeholder="750"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.consumoRecomendadoFuenteWatts || ""}
-                            onChange={(e) =>
-                              setAddForm((f) => ({ ...f, consumoRecomendadoFuenteWatts: e.target.value }))
-                            }
-                          />
+                    {/* ── GPU ── */}
+                    {addCategory === "gpu" && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">VRAM (GB)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.vramGB || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, vramGB: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {VRAM_OPTIONS.map((v) => (
+                                <option key={v} value={v}>{v} GB</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">PSU Rec. (Watts)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.consumoRecomendadoFuenteWatts || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, consumoRecomendadoFuenteWatts: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {GPU_PSU_REC_OPTIONS.map((w) => (
+                                <option key={w} value={w}>{w}W</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                         <div>
                           <label className="mb-1 block text-sm font-medium text-text-primary">Largo (mm)</label>
-                          <input
-                            type="number"
-                            placeholder="300"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
+                          <select
+                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary md:w-1/2"
                             value={addForm.largoMm || ""}
                             onChange={(e) => setAddForm((f) => ({ ...f, largoMm: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Cooler */}
-                  {addCategory === "cooler" && (
-                    <>
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-text-primary">
-                          Sockets Soportados (separados por coma)
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="LGA1700, AM5, LGA1851"
-                          className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                          value={addForm.socketsSoportados || ""}
-                          onChange={(e) => setAddForm((f) => ({ ...f, socketsSoportados: e.target.value }))}
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">TDP Soportado (W)</label>
-                          <input
-                            type="number"
-                            placeholder="150"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.tdpSoportadoWatts || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, tdpSoportadoWatts: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Tipo</label>
-                          <select
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.tipoRefrigeracion || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, tipoRefrigeracion: e.target.value }))}
                           >
-                            <option value="Aire">Aire</option>
-                            <option value="Líquida AIO">Líquida AIO</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">N° Ventiladores</label>
-                          <input
-                            type="number"
-                            placeholder="2"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.numeroVentiladores || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, numeroVentiladores: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Case */}
-                  {addCategory === "case" && (
-                    <>
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-text-primary">
-                          Factores Forma Soportados (separados por coma)
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="ATX, Micro-ATX, Mini-ITX"
-                          className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                          value={addForm.soportaFactoresForma || ""}
-                          onChange={(e) => setAddForm((f) => ({ ...f, soportaFactoresForma: e.target.value }))}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">GPU Max (mm)</label>
-                          <input
-                            type="number"
-                            placeholder="360"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.largoMaxGpuMm || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, largoMaxGpuMm: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Max Fans / Radiador</label>
-                          <input
-                            type="number"
-                            placeholder="3"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.soportaFanCoolerVentiladores || ""}
-                            onChange={(e) =>
-                              setAddForm((f) => ({ ...f, soportaFanCoolerVentiladores: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <label className="flex items-center gap-2 text-sm text-text-primary">
-                          <input
-                            type="checkbox"
-                            className="size-4 rounded"
-                            checked={addForm.tieneFuentePoder === "true"}
-                            onChange={(e) =>
-                              setAddForm((f) => ({ ...f, tieneFuentePoder: e.target.checked ? "true" : "false" }))
-                            }
-                          />
-                          Incluye Fuente de Poder
-                        </label>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Potencia Fuente (W)</label>
-                          <input
-                            type="number"
-                            placeholder="0"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.potenciaFuenteWatts || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, potenciaFuenteWatts: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* PSU */}
-                  {addCategory === "psu" && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Potencia (W)</label>
-                          <input
-                            type="number"
-                            placeholder="850"
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.potenciaWatts || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, potenciaWatts: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Certificación 80+</label>
-                          <select
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.certificacion80Plus || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, certificacion80Plus: e.target.value }))}
-                          >
-                            <option value="Bronze">Bronze</option>
-                            <option value="Gold">Gold</option>
-                            <option value="Platinum">Platinum</option>
-                            <option value="Titanium">Titanium</option>
+                            <option value="">Seleccionar...</option>
+                            {GPU_LARGO_OPTIONS.map((l) => (
+                              <option key={l} value={l}>{l} mm</option>
+                            ))}
                           </select>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <label className="flex items-center gap-2 text-sm text-text-primary">
-                          <input
-                            type="checkbox"
-                            className="size-4 rounded"
-                            checked={addForm.esModular === "true"}
-                            onChange={(e) =>
-                              setAddForm((f) => ({ ...f, esModular: e.target.checked ? "true" : "false" }))
-                            }
-                          />
-                          Modular
-                        </label>
+                    )}
+
+                    {/* ── Cooler ── */}
+                    {addCategory === "cooler" && (
+                      <div className="space-y-3">
                         <div>
-                          <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
-                          <select
-                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
-                            value={addForm.factorForma || ""}
-                            onChange={(e) => setAddForm((f) => ({ ...f, factorForma: e.target.value }))}
-                          >
-                            <option value="ATX">ATX</option>
-                            <option value="SFX">SFX</option>
-                          </select>
+                          <label className="mb-1 block text-sm font-medium text-text-primary">
+                            Sockets Soportados
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {SOCKET_OPTIONS.map((s) => {
+                              const selected = formValueToArray(addForm.socketsSoportados).includes(s);
+                              return (
+                                <label
+                                  key={s}
+                                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                                    selected
+                                      ? "border-brand-500 bg-brand-500/10 text-brand-600"
+                                      : "border-card-border bg-background-white-primary text-text-secondary hover:border-brand-300"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    className="sr-only"
+                                    checked={selected}
+                                    onChange={() => {
+                                      const current = formValueToArray(addForm.socketsSoportados);
+                                      setAddForm((f) => ({
+                                        ...f,
+                                        socketsSoportados: toggleArrayValue(current, s).join(", "),
+                                      }));
+                                    }}
+                                  />
+                                  {s}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">TDP Soportado (W)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tdpSoportadoWatts || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tdpSoportadoWatts: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {COOLER_TDP_OPTIONS.map((w) => (
+                                <option key={w} value={w}>{w}W</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Tipo</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tipoRefrigeracion || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tipoRefrigeracion: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {TIPO_REFRIGERACION_OPTIONS.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">N° Ventiladores</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.numeroVentiladores || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, numeroVentiladores: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {COOLER_VENTILADORES_OPTIONS.map((n) => (
+                                <option key={n} value={n}>{n}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
-                    </>
-                  )}
+                    )}
+
+                    {/* ── Case ── */}
+                    {addCategory === "case" && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-text-primary">
+                            Factores de Forma Soportados
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {FACTOR_FORMA_OPTIONS.map((ff) => {
+                              const selected = formValueToArray(addForm.soportaFactoresForma).includes(ff);
+                              return (
+                                <label
+                                  key={ff}
+                                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                                    selected
+                                      ? "border-brand-500 bg-brand-500/10 text-brand-600"
+                                      : "border-card-border bg-background-white-primary text-text-secondary hover:border-brand-300"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    className="sr-only"
+                                    checked={selected}
+                                    onChange={() => {
+                                      const current = formValueToArray(addForm.soportaFactoresForma);
+                                      setAddForm((f) => ({
+                                        ...f,
+                                        soportaFactoresForma: toggleArrayValue(current, ff).join(", "),
+                                      }));
+                                    }}
+                                  />
+                                  {ff}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">GPU Máx (mm)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.largoMaxGpuMm || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, largoMaxGpuMm: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {CASE_GPU_MAX_OPTIONS.map((l) => (
+                                <option key={l} value={l}>{l} mm</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Max Fans / Radiador</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.soportaFanCoolerVentiladores || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, soportaFanCoolerVentiladores: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {CASE_FAN_SLOTS_OPTIONS.map((n) => (
+                                <option key={n} value={n}>{n}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="flex items-center gap-2 text-sm text-text-primary">
+                            <input
+                              type="checkbox"
+                              className="size-4 rounded"
+                              checked={addForm.tieneFuentePoder === "true"}
+                              onChange={(e) =>
+                                setAddForm((f) => ({ ...f, tieneFuentePoder: e.target.checked ? "true" : "false" }))
+                              }
+                            />
+                            Incluye Fuente de Poder
+                          </label>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Potencia Fuente (W)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.potenciaFuenteWatts || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, potenciaFuenteWatts: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {CASE_FUENTE_POTENCIA_OPTIONS.map((w) => (
+                                <option key={w} value={w}>{w}W</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── PSU ── */}
+                    {addCategory === "psu" && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Potencia (W)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.potenciaWatts || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, potenciaWatts: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {PSU_POTENCIA_OPTIONS.map((w) => (
+                                <option key={w} value={w}>{w}W</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Certificación 80+</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.certificacion80Plus || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, certificacion80Plus: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {CERTIFICACION_80PLUS_OPTIONS.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.factorForma || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, factorForma: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {PSU_FACTOR_FORMA_OPTIONS.map((f) => (
+                                <option key={f} value={f}>{f}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <label className="flex items-center gap-2 pt-6 text-sm text-text-primary">
+                            <input
+                              type="checkbox"
+                              className="size-4 rounded"
+                              checked={addForm.esModular === "true"}
+                              onChange={(e) =>
+                                setAddForm((f) => ({ ...f, esModular: e.target.checked ? "true" : "false" }))
+                              }
+                            />
+                            Modular
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+              )}
+
+              {/* ── CSV Mode ── */}
+              {addMode === "csv" && (
+                <div className="space-y-4">
+                  <input
+                    ref={csvFileRef}
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={handleCsvFileChange}
+                  />
+
+                  {/* Select step */}
+                  {csvStep === "select" && (
+                    <div className="flex flex-col items-center gap-4 py-8">
+                      <div className="flex size-16 items-center justify-center rounded-2xl bg-background-gray-secondary">
+                        <span className="material-symbols-outlined text-3xl text-icon-tertiary">upload_file</span>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-text-primary">Selecciona un archivo CSV para importar</p>
+                        <p className="mt-1 text-xs text-text-tertiary">Formato: el mismo que genera "Descargar CSV"</p>
+                      </div>
+                      <Button appearance="outline" onPress={() => csvFileRef.current?.click()}>
+                        <span className="material-symbols-outlined text-base">folder_open</span>
+                        Seleccionar archivo
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Preview step */}
+                  {csvStep === "preview" && csvParseResult && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="rounded-lg bg-background-gray-secondary p-3 text-center">
+                          <p className="text-2xl font-semibold text-text-primary">{csvParseResult.valid.length}</p>
+                          <p className="text-xs text-text-tertiary">Productos válidos</p>
+                        </div>
+                        <div className="rounded-lg bg-background-gray-secondary p-3 text-center">
+                          <p className={`text-2xl font-semibold ${csvParseResult.errors.length > 0 ? "text-red-500" : "text-text-primary"}`}>{csvParseResult.errors.length}</p>
+                          <p className="text-xs text-text-tertiary">Errores</p>
+                        </div>
+                        <div className="rounded-lg bg-background-gray-secondary p-3 text-center">
+                          <p className="text-2xl font-semibold text-text-primary">{Object.keys(groupByCategory(csvParseResult.valid)).length}</p>
+                          <p className="text-xs text-text-tertiary">Categorías</p>
+                        </div>
+                      </div>
+
+                      {csvParseResult.errors.length > 0 && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                          <p className="mb-2 text-xs font-semibold text-red-700">Errores (se saltarán al importar):</p>
+                          <div className="max-h-32 space-y-1 overflow-y-auto">
+                            {csvParseResult.errors.map((err, i) => (
+                              <p key={i} className="text-xs text-red-600">Fila {err.row}: {err.message}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="overflow-x-auto rounded-lg border border-card-border">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-card-border bg-background-gray-secondary">
+                              <th className="px-3 py-2 text-left font-medium text-text-tertiary">Fila</th>
+                              <th className="px-3 py-2 text-left font-medium text-text-tertiary">Nombre</th>
+                              <th className="px-3 py-2 text-left font-medium text-text-tertiary">Marca</th>
+                              <th className="px-3 py-2 text-left font-medium text-text-tertiary">Categoría</th>
+                              <th className="px-3 py-2 text-left font-medium text-text-tertiary">Precio</th>
+                              <th className="px-3 py-2 text-left font-medium text-text-tertiary">Stock</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {csvParseResult.valid.slice(0, 20).map((row, i) => (
+                              <tr key={i} className="border-b border-card-border last:border-b-0">
+                                <td className="px-3 py-2 text-text-tertiary">{i + 2}</td>
+                                <td className="px-3 py-2 font-medium text-text-primary">{row.form.nombre}</td>
+                                <td className="px-3 py-2 text-text-secondary">{row.form.marca}</td>
+                                <td className="px-3 py-2">
+                                  <span className="inline-block rounded bg-brand-500/10 px-2 py-0.5 text-brand-600">{row.categoryKey}</span>
+                                </td>
+                                <td className="px-3 py-2 text-text-secondary">{row.form.precio || "—"}</td>
+                                <td className="px-3 py-2 text-text-secondary">{row.form.stock || "0"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {csvParseResult.valid.length > 20 && (
+                          <p className="px-3 py-2 text-center text-xs text-text-tertiary">
+                            Mostrando 20 de {csvParseResult.valid.length} productos
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Importing step */}
+                  {csvStep === "importing" && (
+                    <div className="flex flex-col items-center gap-4 py-8">
+                      <div className="size-12 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+                      <p className="text-sm text-text-secondary">
+                        Importando {csvProgress.current} de {csvProgress.total}...
+                      </p>
+                      <div className="h-2 w-full max-w-md overflow-hidden rounded-full bg-background-gray-secondary">
+                        <div
+                          className="h-full rounded-full bg-brand-500 transition-all duration-300"
+                          style={{ width: `${csvProgress.total ? (csvProgress.current / csvProgress.total) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Done step */}
+                  {csvStep === "done" && csvResult && (
+                    <div className="space-y-4 py-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-green-50 p-4 text-center">
+                          <span className="material-symbols-outlined text-3xl text-green-600">check_circle</span>
+                          <p className="mt-1 text-2xl font-semibold text-green-700">{csvResult.created}</p>
+                          <p className="text-xs text-green-600">Creados</p>
+                        </div>
+                        <div className={`rounded-lg p-4 text-center ${csvResult.failed > 0 ? "bg-red-50" : "bg-background-gray-secondary"}`}>
+                          <span className={`material-symbols-outlined text-3xl ${csvResult.failed > 0 ? "text-red-500" : "text-icon-tertiary"}`}>
+                            {csvResult.failed > 0 ? "error" : "check_circle"}
+                          </span>
+                          <p className={`mt-1 text-2xl font-semibold ${csvResult.failed > 0 ? "text-red-600" : "text-text-primary"}`}>{csvResult.failed}</p>
+                          <p className={`text-xs ${csvResult.failed > 0 ? "text-red-500" : "text-text-tertiary"}`}>Fallidos</p>
+                        </div>
+                      </div>
+                      {csvResult.failDetails.length > 0 && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                          <p className="mb-2 text-xs font-semibold text-red-700">Detalles de errores:</p>
+                          <div className="max-h-32 space-y-1 overflow-y-auto">
+                            {csvResult.failDetails.map((err, i) => (
+                              <p key={i} className="text-xs text-red-600">Fila {err.row} ({err.name}): {err.error}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </DialogBody>
 
             <DialogFooter>
-              <DialogClose appearance="outline" onPress={close}>
+              <DialogClose appearance="outline" onPress={() => { resetCsv(); setAddMode("manual"); close(); }}>
                 Cancelar
               </DialogClose>
-              <Button onClick={handleAddProduct} isDisabled={submitting}>
-                <span className="material-symbols-outlined text-base">save</span>
-                {submitting ? "Guardando..." : "Guardar Producto"}
-              </Button>
+              {addMode === "manual" && (
+                <Button onClick={handleAddProduct} isDisabled={submitting}>
+                  <span className="material-symbols-outlined text-base">save</span>
+                  {submitting ? "Guardando..." : "Guardar Producto"}
+                </Button>
+              )}
+              {addMode === "csv" && csvStep === "preview" && csvParseResult && (
+                <Button onPress={handleCsvImport} isDisabled={csvParseResult.valid.length === 0}>
+                  <span className="material-symbols-outlined text-base">upload</span>
+                  Importar {csvParseResult.valid.length} productos
+                </Button>
+              )}
+              {addMode === "csv" && csvStep === "done" && (
+                <Button onPress={() => { resetCsv(); setAddMode("manual"); close(); }}>Cerrar</Button>
+              )}
             </DialogFooter>
           </>
         )}
