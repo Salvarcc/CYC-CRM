@@ -41,6 +41,28 @@ export const PSU_FACTOR_FORMA_OPTIONS = ["ATX", "SFX"];
 
 export const TIPO_REFRIGERACION_OPTIONS = ["Aire", "Líquida AIO"];
 
+export const SSD_CAPACIDAD_OPTIONS = [120, 240, 250, 256, 480, 500, 512, 960, 1000, 1024, 2000, 2048, 4000, 4096];
+
+export const SSD_FORMATO_OPTIONS = ["2.5\" SATA", "M.2 NVMe", "M.2 SATA", "PCIe 4.0", "PCIe 5.0"];
+
+export const SSD_LECTURA_OPTIONS = [500, 550, 1000, 2000, 3000, 3500, 5000, 7000, 10000, 12000];
+
+export const SSD_ESCRITURA_OPTIONS = [400, 450, 500, 1000, 1500, 2000, 3000, 4000, 6000, 8000];
+
+export const MONITOR_TAMANO_OPTIONS = ['24"', '27"', '32"', '34"', '49"'];
+
+export const MONITOR_RESOLUCION_OPTIONS = ["1920x1080 (Full HD)", "2560x1440 (QHD)", "3440x1440 (UWQHD)", "3840x2160 (4K UHD)", "5120x1440 (Dual QHD)"];
+
+export const MONITOR_PANEL_OPTIONS = ["IPS", "VA", "TN", "OLED"];
+
+export const MONITOR_RATIO_OPTIONS = ["16:9", "16:10", "21:9", "32:9"];
+
+export const MONITOR_RESPUESTA_OPTIONS = [1, 2, 4, 5, 8];
+
+export const MONITOR_REFRESCO_OPTIONS = [60, 75, 120, 144, 165, 240, 360];
+
+export const MONITOR_PUERTOS_OPTIONS = ["HDMI", "DisplayPort", "USB-C", "VGA", "DVI"];
+
 // Helper para convertir un array de strings (checkboxes) a valor del form
 export function arrayToFormValue(arr: string[]): string {
   return arr.join(", ");

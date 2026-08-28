@@ -25,6 +25,7 @@ interface ConfigProduct {
 
 interface ConfigData {
   selections: Record<string, ConfigProduct>;
+  extras?: Record<string, ConfigProduct>;
   totalConsumption: number;
   totalPrice: number;
   timestamp: string;
@@ -61,6 +62,16 @@ const STEP_ORDER = [
   "psu",
 ] as const;
 
+const EXTRA_ORDER = ["ssd", "monitor"] as const;
+
+const EXTRA_META: Record<
+  string,
+  { label: string; icon: string; color: string }
+> = {
+  ssd: { label: "SSD / Almacenamiento", icon: "storage", color: "#1d4ed8" },
+  monitor: { label: "Monitor", icon: "monitor", color: "#7c3aed" },
+};
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -89,6 +100,14 @@ function buildSummaryLines(
     if (!p) continue;
     const meta = STEP_META[key];
     lines.push(`${meta.label}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`);
+  }
+  if (data.extras) {
+    for (const key of EXTRA_ORDER) {
+      const p = data.extras[key];
+      if (!p) continue;
+      const meta = EXTRA_META[key];
+      lines.push(`${meta.label} (Opcional): ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`);
+    }
   }
   lines.push("");
   lines.push(`Consumo estimado: ${data.totalConsumption}W`);
@@ -126,7 +145,7 @@ export default function CotizacionPage() {
   /* Recompute total from selections so it follows the active currency */
   const totalPrice = useMemo(() => {
     if (!data) return 0;
-    return STEP_ORDER.reduce((sum, k) => {
+    const base = STEP_ORDER.reduce((sum, k) => {
       const p = data.selections[k];
       if (!p) return sum;
       return (
@@ -134,6 +153,15 @@ export default function CotizacionPage() {
         toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta)
       );
     }, 0);
+    const extrasTotal = (data.extras ? EXTRA_ORDER : []).reduce((sum, k) => {
+      const p = data.extras?.[k];
+      if (!p) return sum;
+      return (
+        sum +
+        toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta)
+      );
+    }, 0);
+    return base + extrasTotal;
   }, [data, currency, rate.venta]);
   const components = data
     ? STEP_ORDER.filter((k) => data.selections[k]).map((k) => ({
@@ -142,6 +170,16 @@ export default function CotizacionPage() {
         product: data.selections[k],
       }))
     : [];
+
+  const extras = data?.extras
+    ? EXTRA_ORDER.filter((k) => data.extras?.[k]).map((k) => ({
+        key: k,
+        ...EXTRA_META[k],
+        product: data.extras![k],
+      }))
+    : [];
+
+  const rows = [...components, ...extras];
 
   const quotationId = data?.timestamp
     ? `#CYM-${new Date(data.timestamp).getFullYear()}-${String(
@@ -208,6 +246,7 @@ export default function CotizacionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           selections: data.selections,
+          extras: data.extras,
           totalConsumption: data.totalConsumption,
           totalPrice,
           moneda: currency,
@@ -394,7 +433,7 @@ export default function CotizacionPage() {
                   </tr>
                 </thead>
                 <tbody className="text-sm">
-                  {components.map((c, i) => (
+                  {rows.map((c, i) => (
                     <tr
                       key={c.key}
                       className="border-b transition-colors hover:bg-[var(--store-surface-container-low)]"
@@ -415,12 +454,25 @@ export default function CotizacionPage() {
                             {c.icon}
                           </span>
                           <div>
-                            <p
-                              className="font-bold"
-                              style={{ color: "var(--store-on-surface)" }}
-                            >
-                              {c.label}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p
+                                className="font-bold"
+                                style={{ color: "var(--store-on-surface)" }}
+                              >
+                                {c.label}
+                              </p>
+                              {EXTRA_ORDER.includes(c.key as (typeof EXTRA_ORDER)[number]) && (
+                                <span
+                                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                                  style={{
+                                    backgroundColor: "var(--store-secondary-container)",
+                                    color: "var(--store-on-secondary-container)",
+                                  }}
+                                >
+                                  Opcional
+                                </span>
+                              )}
+                            </div>
                             <p
                               className="text-xs md:hidden"
                               style={{ color: "var(--store-on-surface-variant)" }}
@@ -452,6 +504,7 @@ export default function CotizacionPage() {
               </table>
             </div>
           </div>
+
         </div>
 
         {/* Right Column */}

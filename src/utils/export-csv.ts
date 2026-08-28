@@ -10,6 +10,8 @@ const CATEGORY_ATTR_COLUMNS: Record<string, string[]> = {
   cooler: ["Subcategoría", "Sockets Soportados", "TDP Soportado (W)", "Tipo Refrigeración", "Nro. Ventiladores"],
   case: ["Subcategoría", "Factores Forma", "Largo Max GPU (mm)", "Fuente Poder", "Potencia Fuente (W)", "Max Ventiladores"],
   psu: ["Subcategoría", "Potencia (W)", "Certificación 80+", "Modular", "Factor Forma"],
+  ssd: ["Subcategoría", "Capacidad (GB)", "Formato", "Interfaz", "Lectura (MB/s)", "Escritura (MB/s)"],
+  monitor: ["Subcategoría", "Tamaño", "Resolución", "Tipo Panel", "Relación de Aspecto", "Tiempo Respuesta (ms)", "Tasa Refresco (Hz)", "Puertos"],
 };
 
 const CATEGORY_ATTR_KEYS: Record<string, Record<string, string>> = {
@@ -63,6 +65,24 @@ const CATEGORY_ATTR_KEYS: Record<string, Record<string, string>> = {
     certificacion80Plus: "Certificación 80+",
     esModular: "Modular",
     factorForma: "Factor Forma",
+  },
+  ssd: {
+    subcategoria: "Subcategoría",
+    capacidadGB: "Capacidad (GB)",
+    formato: "Formato",
+    interfaz: "Interfaz",
+    lecturaMBs: "Lectura (MB/s)",
+    escrituraMBs: "Escritura (MB/s)",
+  },
+  monitor: {
+    subcategoria: "Subcategoría",
+    tamano: "Tamaño",
+    resolucion: "Resolución",
+    tipoPanel: "Tipo Panel",
+    ratioAspecto: "Relación de Aspecto",
+    tiempoRespuestaMs: "Tiempo Respuesta (ms)",
+    tasaRefrescoHz: "Tasa Refresco (Hz)",
+    puertos: "Puertos",
   },
 };
 

@@ -1,4 +1,4 @@
-const VALID_CATEGORIES = ["cpu", "motherboard", "ram", "gpu", "cooler", "case", "psu"];
+const VALID_CATEGORIES = ["cpu", "motherboard", "ram", "gpu", "cooler", "case", "psu", "ssd", "monitor"];
 
 const COLUMN_TO_FIELD: Record<string, Record<string, string>> = {
   cpu: {
@@ -51,6 +51,24 @@ const COLUMN_TO_FIELD: Record<string, Record<string, string>> = {
     "Certificación 80+": "certificacion80Plus",
     "Modular": "esModular",
     "Factor Forma": "factorForma",
+  },
+  ssd: {
+    "Subcategoría": "subcategoria",
+    "Capacidad (GB)": "capacidadGB",
+    "Formato": "formato",
+    "Interfaz": "interfaz",
+    "Lectura (MB/s)": "lecturaMBs",
+    "Escritura (MB/s)": "escrituraMBs",
+  },
+  monitor: {
+    "Subcategoría": "subcategoria",
+    "Tamaño": "tamano",
+    "Resolución": "resolucion",
+    "Tipo Panel": "tipoPanel",
+    "Relación de Aspecto": "ratioAspecto",
+    "Tiempo Respuesta (ms)": "tiempoRespuestaMs",
+    "Tasa Refresco (Hz)": "tasaRefrescoHz",
+    "Puertos": "puertos",
   },
 };
 
@@ -317,6 +335,26 @@ function buildPayload(categoryKey: string, form: Record<string, string>) {
         certificacion80Plus: form.certificacion80Plus || "Bronze",
         esModular: form.esModular === "true",
         factorForma: form.factorForma || "ATX",
+      };
+    case "ssd":
+      return {
+        ...base,
+        capacidadGB: form.capacidadGB ? parseInt(form.capacidadGB, 10) : 0,
+        formato: form.formato || "",
+        interfaz: form.interfaz || null,
+        lecturaMBs: form.lecturaMBs ? parseInt(form.lecturaMBs, 10) : null,
+        escrituraMBs: form.escrituraMBs ? parseInt(form.escrituraMBs, 10) : null,
+      };
+    case "monitor":
+      return {
+        ...base,
+        tamano: form.tamano || "",
+        resolucion: form.resolucion || "",
+        tipoPanel: form.tipoPanel || null,
+        ratioAspecto: form.ratioAspecto || null,
+        tiempoRespuestaMs: form.tiempoRespuestaMs ? parseInt(form.tiempoRespuestaMs, 10) : null,
+        tasaRefrescoHz: form.tasaRefrescoHz ? parseInt(form.tasaRefrescoHz, 10) : null,
+        puertos: form.puertos || null,
       };
     default:
       return base;

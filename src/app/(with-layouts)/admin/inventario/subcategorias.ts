@@ -38,6 +38,19 @@ export const SUBCATEGORIAS_POR_CATEGORIA: Record<string, string[]> = {
     "CASES SIN FUENTE P/GAMERS",
   ],
   psu: ["CASES, FUENTE PARA GAMING"],
+  ssd: [
+    "SSD 2.5\" SATA",
+    "SSD M.2 NVMe",
+    "SSD M.2 SATA",
+    "SSD PCIe",
+  ],
+  monitor: [
+    "MONITOR 24\"",
+    "MONITOR 27\"",
+    "MONITOR 32\"",
+    "MONITOR ULTRAWIDE CURVO",
+    "MONITOR GAMER ALTO REFRESCO",
+  ],
 };
 
 export function getSubcategorias(categoriaKey: string): string[] {

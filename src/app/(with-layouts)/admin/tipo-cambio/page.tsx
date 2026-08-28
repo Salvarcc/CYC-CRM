@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 
 interface TipoCambio {
   id: string;
-  compra: number;
-  venta: number;
+  compra: number | string;
+  venta: number | string;
   fuente: string;
   fecha: string;
 }
@@ -215,10 +215,10 @@ export default function TipoCambioPage() {
                     })}
                   </td>
                   <td className="px-4 py-3 text-sm text-admin-text-primary font-mono">
-                    S/ {tc.compra.toFixed(4)}
+                    S/ {Number(tc.compra).toFixed(4)}
                   </td>
                   <td className="px-4 py-3 text-sm text-admin-text-primary font-mono">
-                    S/ {tc.venta.toFixed(4)}
+                    S/ {Number(tc.venta).toFixed(4)}
                   </td>
                   <td className="px-4 py-3 text-sm text-admin-text-secondary">
                     {tc.fuente}

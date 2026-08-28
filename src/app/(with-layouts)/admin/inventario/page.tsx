@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/tailgrids/core/table";
 import { MenuDotsIcon } from "@/utils/icon";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImageUploader } from "@/components/common/image-uploader/image-uploader";
 import { exportInventoryCsv } from "@/utils/export-csv";
@@ -54,6 +54,17 @@ import {
   CERTIFICACION_80PLUS_OPTIONS,
   PSU_FACTOR_FORMA_OPTIONS,
   TIPO_REFRIGERACION_OPTIONS,
+  SSD_CAPACIDAD_OPTIONS,
+  SSD_FORMATO_OPTIONS,
+  SSD_LECTURA_OPTIONS,
+  SSD_ESCRITURA_OPTIONS,
+  MONITOR_TAMANO_OPTIONS,
+  MONITOR_RESOLUCION_OPTIONS,
+  MONITOR_PANEL_OPTIONS,
+  MONITOR_RATIO_OPTIONS,
+  MONITOR_RESPUESTA_OPTIONS,
+  MONITOR_REFRESCO_OPTIONS,
+  MONITOR_PUERTOS_OPTIONS,
   formValueToArray,
   toggleArrayValue,
 } from "./technical-attrs";
@@ -98,6 +109,8 @@ const CATEGORIES = [
   "Refrigeración",
   "Gabinetes",
   "Fuentes de Poder",
+  "Almacenamiento SSD",
+  "Monitores",
 ] as const;
 
 const CATEGORY_KEY_MAP: Record<string, string> = {
@@ -108,6 +121,8 @@ const CATEGORY_KEY_MAP: Record<string, string> = {
   Refrigeración: "cooler",
   Gabinetes: "case",
   "Fuentes de Poder": "psu",
+  "Almacenamiento SSD": "ssd",
+  Monitores: "monitor",
 };
 
 function groupByCategory(rows: { categoryKey: string }[]) {
@@ -126,9 +141,57 @@ const ADD_PRODUCT_CATEGORIES = [
   { value: "cooler", label: "Refrigeración" },
   { value: "case", label: "Gabinetes" },
   { value: "psu", label: "Fuentes de Poder" },
+  { value: "ssd", label: "Almacenamiento SSD" },
+  { value: "monitor", label: "Monitores" },
 ];
 
 const PLACEHOLDER_IMG = "https://placehold.co/40x40/f3f4f6/6b7280?text=PC";
+
+// Atributos técnicos por categoría para el minifiltro (bajo las pestañas de categoría).
+const CATEGORY_ATTR_FILTERS: Record<string, { key: string; label: string }[]> = {
+  cpu: [
+    { key: "socket", label: "Socket" },
+    { key: "tipoMemoria", label: "Tipo Memoria" },
+  ],
+  motherboard: [
+    { key: "socket", label: "Socket" },
+    { key: "tipoMemoria", label: "Tipo Memoria" },
+    { key: "factorForma", label: "Factor Forma" },
+  ],
+  ram: [
+    { key: "tipoMemoria", label: "Tipo Memoria" },
+    { key: "capacidadGB", label: "Capacidad" },
+  ],
+  gpu: [{ key: "vramGB", label: "VRAM (GB)" }],
+  cooler: [{ key: "tipoRefrigeracion", label: "Tipo Refrigeración" }],
+  case: [],
+  psu: [{ key: "potenciaWatts", label: "Potencia (W)" }],
+  ssd: [
+    { key: "capacidadGB", label: "Capacidad (GB)" },
+    { key: "formato", label: "Formato" },
+    { key: "interfaz", label: "Interfaz" },
+  ],
+  monitor: [
+    { key: "tamano", label: "Tamaño" },
+    { key: "resolucion", label: "Resolución" },
+    { key: "tipoPanel", label: "Panel" },
+    { key: "tasaRefrescoHz", label: "Refresco (Hz)" },
+  ],
+};
+
+function buildAttrFilterOptions(activeCategory: string): { key: string; label: string }[] {
+  if (activeCategory !== "Todos") {
+    return CATEGORY_ATTR_FILTERS[activeCategory] ?? [];
+  }
+  const seen = new Map<string, string>();
+  for (const [, filters] of Object.entries(CATEGORY_ATTR_FILTERS)) {
+    for (const f of filters) {
+      if (!seen.has(f.key)) seen.set(f.key, f.label);
+    }
+  }
+  return Array.from(seen, ([key, label]) => ({ key, label }));
+}
+
 
 function formatPrice(n: number | null, moneda?: string): string {
   if (n == null) return "—";
@@ -232,6 +295,26 @@ function getAddPayload(categoryKey: string, form: Record<string, string>) {
         esModular: form.esModular === "true",
         factorForma: form.factorForma || "ATX",
       };
+    case "ssd":
+      return {
+        ...base,
+        capacidadGB: form.capacidadGB ? parseInt(form.capacidadGB, 10) : 0,
+        formato: form.formato || "",
+        interfaz: form.interfaz || null,
+        lecturaMBs: form.lecturaMBs ? parseInt(form.lecturaMBs, 10) : null,
+        escrituraMBs: form.escrituraMBs ? parseInt(form.escrituraMBs, 10) : null,
+      };
+    case "monitor":
+      return {
+        ...base,
+        tamano: form.tamano || "",
+        resolucion: form.resolucion || "",
+        tipoPanel: form.tipoPanel || null,
+        ratioAspecto: form.ratioAspecto || null,
+        tiempoRespuestaMs: form.tiempoRespuestaMs ? parseInt(form.tiempoRespuestaMs, 10) : null,
+        tasaRefrescoHz: form.tasaRefrescoHz ? parseInt(form.tasaRefrescoHz, 10) : null,
+        puertos: form.puertos || null,
+      };
     default:
       return base;
   }
@@ -252,6 +335,30 @@ export default function InventarioPage() {
   const [csvProgress, setCsvProgress] = useState({ current: 0, total: 0 });
   const [csvResult, setCsvResult] = useState<{ created: number; failed: number; failDetails: { row: number; name: string; error: string }[] } | null>(null);
   const csvFileRef = useRef<HTMLInputElement>(null);
+
+  const [subcategoriaFilter, setSubcategoriaFilter] = useState("");
+  const [attrFilters, setAttrFilters] = useState<Record<string, string>>({});
+
+  const filteredItems = useMemo(() => {
+    const activeAttrFilters = buildAttrFilterOptions(activeCategory);
+    return items.filter((item) => {
+      if (subcategoriaFilter) {
+        const sub = (item.attrs.subcategoria as string) ?? "";
+        if (sub !== subcategoriaFilter) return false;
+      }
+      for (const f of activeAttrFilters) {
+        const value = (item.attrs as Record<string, unknown>)[f.key];
+        const selected = attrFilters[f.key];
+        if (selected && String(value ?? "") !== selected) return false;
+      }
+      return true;
+    });
+  }, [items, activeCategory, subcategoriaFilter, attrFilters]);
+
+  const resetMinifilters = useCallback(() => {
+    setSubcategoriaFilter("");
+    setAttrFilters({});
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -407,11 +514,11 @@ export default function InventarioPage() {
     fetchProducts();
   }, [csvParseResult, fetchProducts]);
 
-  const totalProducts = items.length;
-  const inStock = items.filter((i) => i.stock > 0).length;
-  const lowStock = items.filter((i) => i.stock > 0 && i.stock <= 5).length;
-  const outOfStock = items.filter((i) => i.stock === 0).length;
-  const ocultos = items.filter((i) => i.oculto).length;
+  const totalProducts = filteredItems.length;
+  const inStock = filteredItems.filter((i) => i.stock > 0).length;
+  const lowStock = filteredItems.filter((i) => i.stock > 0 && i.stock <= 5).length;
+  const outOfStock = filteredItems.filter((i) => i.stock === 0).length;
+  const ocultos = filteredItems.filter((i) => i.oculto).length;
 
   return (
     <div className="mt-6 space-y-5">
@@ -595,19 +702,99 @@ export default function InventarioPage() {
             ))}
           </div>
 
+          {/* Minifiltro: subcategoría + atributos técnicos según la categoría activa */}
+          {!loading && items.length > 0 && (() => {
+            const attrDefs = buildAttrFilterOptions(activeCategory);
+            const subcategorias = Array.from(
+              new Set(
+                items
+                  .map((i) => (i.attrs.subcategoria as string) ?? "")
+                  .filter(Boolean),
+              ),
+            ).sort();
+            const hasActive = subcategoriaFilter || Object.keys(attrFilters).some((k) => attrFilters[k]);
+            const isSubActive = !!subcategoriaFilter;
+            return (
+              <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-card-border bg-background-gray-primary/40 p-3">
+                {isSubActive && (
+                  <button
+                    onClick={() => setSubcategoriaFilter("")}
+                    className="mb-1.5 flex cursor-pointer items-center gap-1 rounded-md bg-brand-500/10 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-500/20"
+                  >
+                    <span className="material-symbols-outlined text-sm">close</span>
+                    {subcategoriaFilter}
+                  </button>
+                )}
+                <div className="min-w-40 flex-1 sm:flex-none">
+                  <label className="mb-1 block text-xs font-medium text-text-tertiary">
+                    Subcategoría
+                  </label>
+                  <select
+                    className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
+                    value={subcategoriaFilter}
+                    onChange={(e) => setSubcategoriaFilter(e.target.value)}
+                  >
+                    <option value="">Todas</option>
+                    {subcategorias.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                {attrDefs.map((f) => {
+                  const values = items
+                    .map((i) => String((i.attrs as Record<string, unknown>)[f.key] ?? ""))
+                    .filter(Boolean);
+                  const options = Array.from(new Set(values)).sort();
+                  if (options.length === 0) return null;
+                  return (
+                    <div key={f.key} className="min-w-36 flex-1 sm:flex-none">
+                      <label className="mb-1 block text-xs font-medium text-text-tertiary">
+                        {f.label}
+                      </label>
+                      <select
+                        className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2 text-sm text-text-primary"
+                        value={attrFilters[f.key] ?? ""}
+                        onChange={(e) =>
+                          setAttrFilters((prev) => ({
+                            ...prev,
+                            [f.key]: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">Todos</option>
+                        {options.map((v) => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+                <Button
+                  appearance="outline"
+                  className="mb-0.5 h-9 px-3 text-xs"
+                  onPress={resetMinifilters}
+                  isDisabled={!hasActive}
+                >
+                  <span className="material-symbols-outlined text-sm">filter_alt_off</span>
+                  Limpiar
+                </Button>
+              </div>
+            );
+          })()}
+
           {/* Table */}
           <div>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <span className="text-sm text-text-tertiary">Cargando productos...</span>
               </div>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-12">
                 <span className="material-symbols-outlined text-4xl text-text-tertiary">
                   inventory_2
                 </span>
                 <p className="text-sm text-text-tertiary">
-                  No hay productos en esta categoría.
+                  No hay productos que coincidan con los filtros.
                 </p>
                 <Button
                   onClick={() => {
@@ -652,7 +839,7 @@ export default function InventarioPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => {
+                  {filteredItems.map((item) => {
                     const status = getStockStatus(item.stock);
                     return (
                       <TableRow key={item.id} className={`[&_td]:border-none ${item.oculto ? "opacity-50" : ""}`}>
@@ -1416,6 +1603,203 @@ export default function InventarioPage() {
                             />
                             Modular
                           </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── SSD ── */}
+                    {addCategory === "ssd" && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.capacidadGB || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, capacidadGB: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {SSD_CAPACIDAD_OPTIONS.map((c) => (
+                                <option key={c} value={c}>{c} GB</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Formato</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.formato || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, formato: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {SSD_FORMATO_OPTIONS.map((f) => (
+                                <option key={f} value={f}>{f}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-text-primary">Interfaz</label>
+                          <select
+                            className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary md:w-1/2"
+                            value={addForm.interfaz || ""}
+                            onChange={(e) => setAddForm((f) => ({ ...f, interfaz: e.target.value }))}
+                          >
+                            <option value="">Seleccionar...</option>
+                            <option value="SATA">SATA</option>
+                            <option value="NVMe">NVMe</option>
+                            <option value="PCIe">PCIe</option>
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Lectura (MB/s)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.lecturaMBs || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, lecturaMBs: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {SSD_LECTURA_OPTIONS.map((v) => (
+                                <option key={v} value={v}>{v} MB/s</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Escritura (MB/s)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.escrituraMBs || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, escrituraMBs: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {SSD_ESCRITURA_OPTIONS.map((v) => (
+                                <option key={v} value={v}>{v} MB/s</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Monitor ── */}
+                    {addCategory === "monitor" && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Tamaño</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tamano || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tamano: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {MONITOR_TAMANO_OPTIONS.map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Resolución</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.resolucion || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, resolucion: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {MONITOR_RESOLUCION_OPTIONS.map((r) => (
+                                <option key={r} value={r}>{r}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Panel</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tipoPanel || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tipoPanel: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {MONITOR_PANEL_OPTIONS.map((p) => (
+                                <option key={p} value={p}>{p}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Relación de Aspecto</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.ratioAspecto || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, ratioAspecto: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {MONITOR_RATIO_OPTIONS.map((r) => (
+                                <option key={r} value={r}>{r}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Tiempo Respuesta (ms)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tiempoRespuestaMs || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tiempoRespuestaMs: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {MONITOR_RESPUESTA_OPTIONS.map((v) => (
+                                <option key={v} value={v}>{v} ms</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text-primary">Tasa de Refresco (Hz)</label>
+                            <select
+                              className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
+                              value={addForm.tasaRefrescoHz || ""}
+                              onChange={(e) => setAddForm((f) => ({ ...f, tasaRefrescoHz: e.target.value }))}
+                            >
+                              <option value="">Seleccionar...</option>
+                              {MONITOR_REFRESCO_OPTIONS.map((hz) => (
+                                <option key={hz} value={hz}>{hz} Hz</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-text-primary">Puertos</label>
+                          <div className="flex flex-wrap gap-2">
+                            {MONITOR_PUERTOS_OPTIONS.map((p) => {
+                              const selected = formValueToArray(addForm.puertos).includes(p);
+                              return (
+                                <label
+                                  key={p}
+                                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                                    selected
+                                      ? "border-brand-500 bg-brand-500/10 text-brand-600"
+                                      : "border-card-border bg-background-white-primary text-text-secondary hover:border-brand-300"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    className="sr-only"
+                                    checked={selected}
+                                    onChange={() => {
+                                      const current = formValueToArray(addForm.puertos);
+                                      setAddForm((f) => ({
+                                        ...f,
+                                        puertos: toggleArrayValue(current, p).join(", "),
+                                      }));
+                                    }}
+                                  />
+                                  {p}
+                                </label>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}

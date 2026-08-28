@@ -53,6 +53,13 @@ const STEP_META: Record<string, { label: string; icon: string; color: string }> 
 
 const STEP_ORDER = ["cpu", "motherboard", "ram", "gpu", "cooler", "case", "psu"] as const;
 
+const EXTRA_META: Record<string, { label: string; icon: string; color: string }> = {
+  ssd: { label: "SSD / Almacenamiento", icon: "storage", color: "#1d4ed8" },
+  monitor: { label: "Monitor", icon: "monitor", color: "#7c3aed" },
+};
+
+const EXTRA_ORDER = ["ssd", "monitor"] as const;
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -142,7 +149,8 @@ export default function MisCotizacionesPage() {
   }
 
   function handleWhatsApp(c: Cotizacion) {
-    const config = c.configuracion as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string }>;
+    const config = c.configuracion as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+    const extras = (config.extras ?? {}) as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
     const lines: string[] = [];
     for (const key of STEP_ORDER) {
       const p = config[key];
@@ -150,8 +158,18 @@ export default function MisCotizacionesPage() {
       const meta = STEP_META[key];
       lines.push(`${meta.label}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate.venta)}`);
     }
+    for (const key of EXTRA_ORDER) {
+      const p = extras[key];
+      if (!p) continue;
+      const meta = EXTRA_META[key];
+      lines.push(`${meta.label} (Opcional): ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate.venta)}`);
+    }
     const total = STEP_ORDER.reduce((sum, k) => {
       const p = config[k];
+      if (!p) return sum;
+      return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
+    }, 0) + EXTRA_ORDER.reduce((sum, k) => {
+      const p = extras[k];
       if (!p) return sum;
       return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
     }, 0);
@@ -165,7 +183,8 @@ export default function MisCotizacionesPage() {
   }
 
   function handleEmail(c: Cotizacion) {
-    const config = c.configuracion as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string }>;
+    const config = c.configuracion as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+    const extras = (config.extras ?? {}) as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
     const lines: string[] = [];
     for (const key of STEP_ORDER) {
       const p = config[key];
@@ -173,8 +192,18 @@ export default function MisCotizacionesPage() {
       const meta = STEP_META[key];
       lines.push(`${meta.label}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate.venta)}`);
     }
+    for (const key of EXTRA_ORDER) {
+      const p = extras[key];
+      if (!p) continue;
+      const meta = EXTRA_META[key];
+      lines.push(`${meta.label} (Opcional): ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate.venta)}`);
+    }
     const total = STEP_ORDER.reduce((sum, k) => {
       const p = config[k];
+      if (!p) return sum;
+      return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
+    }, 0) + EXTRA_ORDER.reduce((sum, k) => {
+      const p = extras[k];
       if (!p) return sum;
       return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
     }, 0);
@@ -191,8 +220,10 @@ export default function MisCotizacionesPage() {
   async function handleDownloadPDF(c: Cotizacion) {
     try {
       const { generateQuotationPDF } = await import("@/utils/pdf");
+      const config = c.configuracion as Record<string, unknown>;
       const configData = {
-        selections: c.configuracion as Record<string, never>,
+        selections: config as Record<string, never>,
+        extras: (config.extras ?? {}) as Record<string, never>,
         totalConsumption: c.totalConsumption,
         totalPrice: c.totalPrice,
         timestamp: c.createdAt,
@@ -337,8 +368,13 @@ export default function MisCotizacionesPage() {
           const isExpanded = expandedId === c.id;
           const color = expiryColor(c.expiresAt);
           const config = c.configuracion as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+          const extras = (config.extras ?? {}) as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
           const total = STEP_ORDER.reduce((sum, k) => {
             const p = config[k];
+            if (!p) return sum;
+            return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
+          }, 0) + EXTRA_ORDER.reduce((sum, k) => {
+            const p = extras[k];
             if (!p) return sum;
             return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
           }, 0);
@@ -473,6 +509,53 @@ export default function MisCotizacionesPage() {
                                     style={{ color: "var(--store-on-surface)" }}
                                   >
                                     {meta.label}
+                                  </span>
+                                </div>
+                              </td>
+                              <td
+                                className="hidden px-3 py-2.5 md:table-cell"
+                                style={{ color: "var(--store-on-surface-variant)" }}
+                              >
+                                <span className="text-xs font-mono">
+                                  {p.marca} — {p.nombre}
+                                </span>
+                              </td>
+                              <td
+                                className="px-3 py-2.5 text-right font-bold"
+                                style={{ color: "var(--store-on-surface)" }}
+                              >
+                                <span className="font-mono text-xs">
+                                  {displayPrice(p.precio, p.moneda, currency, rate.venta)}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {EXTRA_ORDER.filter((k) => extras[k]).map((k, i) => {
+                          const p = extras[k];
+                          const meta = EXTRA_META[k];
+                          return (
+                            <tr
+                              key={k}
+                              className="border-b"
+                              style={{
+                                borderColor: "var(--store-outline-variant)",
+                                backgroundColor: i % 2 === 1 ? "var(--store-surface-container-low)" : "transparent",
+                              }}
+                            >
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="material-symbols-outlined text-base"
+                                    style={{ color: meta.color }}
+                                  >
+                                    {meta.icon}
+                                  </span>
+                                  <span
+                                    className="text-xs font-semibold"
+                                    style={{ color: "var(--store-on-surface)" }}
+                                  >
+                                    {meta.label} <span className="font-normal" style={{ color: "var(--store-on-surface-variant)" }}>[Opcional]</span>
                                   </span>
                                 </div>
                               </td>

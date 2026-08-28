@@ -20,6 +20,7 @@ interface ConfigProduct {
 
 interface ConfigData {
   selections: Record<string, ConfigProduct>;
+  extras?: Record<string, ConfigProduct>;
   totalConsumption: number;
   totalPrice: number;
   timestamp: string;
@@ -48,6 +49,13 @@ const STEP_META: Record<string, StepMeta> = {
 const STEP_ORDER = [
   "cpu", "motherboard", "ram", "gpu", "cooler", "case", "psu",
 ] as const;
+
+const EXTRA_ORDER = ["ssd", "monitor"] as const;
+
+const EXTRA_META: Record<string, StepMeta> = {
+  ssd: { label: "SSD / Almacenamiento", icon: "storage", color: "#1d4ed8" },
+  monitor: { label: "Monitor", icon: "monitor", color: "#7c3aed" },
+};
 
 const CYM_LOGO_URL =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuBL2oJgN7wZ1qS42ieEyDyhZruYbZ0vS39voPvete9dCVfscrG1jIEdrUZP9fCUO-o_iAn6n7ARoZHS7T7RXRTOMqMvYS-IdlBeU6dO29wYkkAp5aCQMep-eCVDOCwu0b53d8e613ipi2MlijJUWhrO8odsBw28ENCoQTLm5iLMPyqMH0CV_p-2gpy4qreApY-0HFORQHg5jNueyQrVACavX2HxXulMqEvg2i1p9276fnyF4IpvfIz2rgrhmZLeJ8SpRw";
@@ -260,6 +268,21 @@ export async function generateQuotationPDF(
     ]);
   }
 
+  let rowNum = body.length + 1;
+  if (data.extras) {
+    for (const key of EXTRA_ORDER) {
+      const product = data.extras[key];
+      if (!product) continue;
+      const meta = EXTRA_META[key];
+      body.push([
+        String(rowNum++),
+        `${meta.label} (Opcional)`,
+        `${product.marca} — ${product.nombre}`,
+        formatPrice(toPreferred(product.precio, product.moneda, currency, saleRate), currency),
+      ]);
+    }
+  }
+
   autoTable(doc, {
     startY: y,
     margin: { left: margin, right: margin },
@@ -317,7 +340,11 @@ export async function generateQuotationPDF(
     const p = data.selections[key];
     if (!p) return sum;
     return sum + toPreferred(p.precio, p.moneda, currency, saleRate);
-  }, 0);
+  }, 0) + (data.extras ? EXTRA_ORDER.reduce((sum, key) => {
+    const p = data.extras?.[key];
+    if (!p) return sum;
+    return sum + toPreferred(p.precio, p.moneda, currency, saleRate);
+  }, 0) : 0);
   const igv = subtotal * 0.18;
   const total = subtotal + igv;
 

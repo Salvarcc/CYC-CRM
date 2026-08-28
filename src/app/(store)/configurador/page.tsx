@@ -79,7 +79,45 @@ const CATEGORY_ICONS: Record<string, string> = {
   cooler: "ac_unit",
   case: "desktop_windows",
   psu: "power",
+  ssd: "storage",
+  monitor: "monitor",
 };
+
+/* ── Extras (opcionales) ─────────────────────────────────────────── */
+
+const EXTRAS = [
+  { key: "ssd", categoryKey: "ssd", label: "SSD / Almacenamiento", icon: "storage", color: "#475569" },
+  { key: "monitor", categoryKey: "monitor", label: "Monitor", icon: "monitor", color: "#0ea5e9" },
+] as const;
+
+type ExtraKey = (typeof EXTRAS)[number]["key"];
+
+const EXTRA_COLORS: Record<ExtraKey, string> = {
+  ssd: "#475569",
+  monitor: "#0ea5e9",
+};
+
+function buildExtraTags(p: Product): string[] {
+  const a = p.attrs;
+  switch (p.categoryKey) {
+    case "ssd":
+      return [
+        `${a.capacidadGB}GB`,
+        a.formato as string,
+        a.interfaz as string,
+        a.lecturaMBs ? `Lectura ${a.lecturaMBs}MB/s` : null,
+      ].filter(Boolean) as string[];
+    case "monitor":
+      return [
+        a.tamano as string,
+        a.resolucion as string,
+        a.tipoPanel as string,
+        a.tasaRefrescoHz ? `${a.tasaRefrescoHz}Hz` : null,
+      ].filter(Boolean) as string[];
+    default:
+      return [];
+  }
+}
 
 const PLACEHOLDER_IMG =
   "https://placehold.co/400x400/f3f4f6/6b7280?text=PC+Component";
@@ -192,6 +230,11 @@ export default function ConfiguradorPage() {
     case: null,
     psu: null,
   });
+  const [extras, setExtras] = useState<Record<ExtraKey, Product | null>>({
+    ssd: null,
+    monitor: null,
+  });
+  const [activeExtra, setActiveExtra] = useState<ExtraKey | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("Todas");
@@ -210,6 +253,7 @@ export default function ConfiguradorPage() {
         if (raw) {
           const saved = JSON.parse(raw) as {
             selections: Record<string, Partial<Product>>;
+            extras?: Record<string, Partial<Product>>;
           };
           const restored: Record<StepKey, Product | null> = {
             cpu: null,
@@ -228,6 +272,20 @@ export default function ConfiguradorPage() {
             }
           }
           setSelected(restored);
+
+          /* Restore extras */
+          const restoredExtras: Record<ExtraKey, Product | null> = {
+            ssd: null,
+            monitor: null,
+          };
+          for (const ex of EXTRAS) {
+            const savedExtra = saved.extras?.[ex.key];
+            if (savedExtra?.id) {
+              const fullProduct = data.find((p) => p.id === savedExtra.id);
+              if (fullProduct) restoredExtras[ex.key] = fullProduct;
+            }
+          }
+          setExtras(restoredExtras);
 
           /* Jump to first incomplete step */
           const firstIncomplete = STEP_KEYS.findIndex((k) => !restored[k]);
@@ -260,6 +318,18 @@ export default function ConfiguradorPage() {
 
   const stepDef = STEPS[currentStep];
   const stepKey = stepDef.key;
+
+  /* ── Unified active "view": either a required step or an extra ── */
+
+  const isExtraView = activeExtra !== null;
+  const activeExtraDef = isExtraView
+    ? EXTRAS.find((e) => e.key === activeExtra) ?? null
+    : null;
+  const viewLabel = activeExtraDef ? activeExtraDef.label : stepDef.label;
+  const viewColor = activeExtraDef
+    ? EXTRA_COLORS[activeExtra!]
+    : STEP_COLORS[stepKey];
+  const viewIcon = activeExtraDef ? activeExtraDef.icon : stepDef.icon;
 
   const selectedCpu = selected.cpu;
   const selectedMotherboard = selected.motherboard;
@@ -353,10 +423,21 @@ export default function ConfiguradorPage() {
     return list;
   }, [products, stepKey, stepDef.categoryKey, selectedCpu, selectedMotherboard, selectedGpu, selectedCooler]);
 
+  /* ── Base product list for the active view ───────────────────── */
+
+  const viewBase = useMemo(() => {
+    if (activeExtra) {
+      return products.filter(
+        (p) => p.categoryKey === activeExtra && p.stock > 0,
+      );
+    }
+    return compatibilityProducts;
+  }, [activeExtra, products, compatibilityProducts]);
+
   /* ── Search, brand, sort filtering ───────────────────────────── */
 
   const filteredProducts = useMemo(() => {
-    let list = compatibilityProducts;
+    let list = viewBase;
 
     if (search) {
       const q = search.toLowerCase();
@@ -386,7 +467,7 @@ export default function ConfiguradorPage() {
     }
 
     return list;
-  }, [compatibilityProducts, search, brandFilter, sortOrder]);
+  }, [viewBase, search, brandFilter, sortOrder]);
 
   /* ── Step optionality ────────────────────────────────────────── */
 
@@ -448,8 +529,12 @@ export default function ConfiguradorPage() {
       STEP_KEYS.reduce(
         (sum, k) => sum + toPreferredCurrency(selected[k]?.precio ?? 0, selected[k]?.moneda ?? "USD", currency, rate.venta),
         0,
+      ) +
+      EXTRAS.reduce(
+        (sum, ex) => sum + toPreferredCurrency(extras[ex.key]?.precio ?? 0, extras[ex.key]?.moneda ?? "USD", currency, rate.venta),
+        0,
       ),
-    [selected, currency, rate.venta],
+    [selected, extras, currency, rate.venta],
   );
 
   const totalConsumption = useMemo(() => {
@@ -459,6 +544,17 @@ export default function ConfiguradorPage() {
   }, [selected.cpu, selected.gpu]);
 
   const selectedCount = STEP_KEYS.filter((k) => !!selected[k]).length;
+
+  const selectedExtrasCount = EXTRAS.filter((ex) => !!extras[ex.key]).length;
+
+  /* ── Toggle an extra on/off ──────────────────────────────────── */
+
+  function toggleExtra(key: ExtraKey, product: Product) {
+    if (product.stock <= 0) return;
+    setExtras((prev) =>
+      prev[key]?.id === product.id ? { ...prev, [key]: null } : { ...prev, [key]: product },
+    );
+  }
 
   /* ── Compatibility banner text ───────────────────────────────── */
 
@@ -542,9 +638,43 @@ export default function ConfiguradorPage() {
     });
   }
 
+  function selectViewProduct(product: Product) {
+    if (isExtraView) {
+      toggleExtra(activeExtra!, product);
+    } else {
+      selectProduct(product);
+    }
+  }
+
+  function isViewSelected(product: Product): boolean {
+    if (isExtraView) return extras[activeExtra!]?.id === product.id;
+    return selected[stepKey]?.id === product.id;
+  }
+
+  function deselectView() {
+    if (isExtraView) {
+      setExtras((prev) => ({ ...prev, [activeExtra!]: null }));
+    } else {
+      deselectCurrent();
+    }
+  }
+
+  function buildViewTags(product: Product): string[] {
+    if (isExtraView) return buildExtraTags(product);
+    return buildTags(product);
+  }
+
   function goToStep(i: number) {
     if (i > furthestReachable) return;
     setCurrentStep(i);
+    setActiveExtra(null);
+    setSearch("");
+    setBrandFilter("Todas");
+    setSortOrder("Relevancia");
+  }
+
+  function openExtra(key: ExtraKey) {
+    setActiveExtra(key);
     setSearch("");
     setBrandFilter("Todas");
     setSortOrder("Relevancia");
@@ -587,22 +717,42 @@ export default function ConfiguradorPage() {
         },
         {} as Record<string, Partial<Product>>,
       ),
+      extras: EXTRAS.reduce(
+        (acc, ex) => {
+          const p = extras[ex.key];
+          if (p) {
+            acc[ex.key] = {
+              id: p.id,
+              nombre: p.nombre,
+              marca: p.marca,
+              precio: p.precio,
+              moneda: p.moneda,
+              category: p.category,
+              categoryKey: p.categoryKey,
+              imagenUrl: p.imagenUrl,
+              attrs: p.attrs,
+            };
+          }
+          return acc;
+        },
+        {} as Record<string, Partial<Product>>,
+      ),
       totalConsumption,
       totalPrice,
       timestamp: new Date().toISOString(),
     };
     localStorage.setItem("cym-configuracion", JSON.stringify(payload));
     router.push("/cotizacion");
-  }, [selected, totalConsumption, totalPrice, router]);
+  }, [selected, extras, totalConsumption, totalPrice, router]);
 
   /* ── Brand options for current step ──────────────────────────── */
 
   const currentBrands = useMemo(() => {
     const brands = new Set(
-      compatibilityProducts.map((p) => p.marca),
+      viewBase.map((p) => p.marca),
     );
     return ["Todas", ...Array.from(brands).sort()];
-  }, [compatibilityProducts]);
+  }, [viewBase]);
 
   /* ── Stepper line fill ───────────────────────────────────────── */
 
@@ -636,21 +786,25 @@ export default function ConfiguradorPage() {
         </h1>
 
         {/* Stepper */}
-        <div className="relative flex items-center justify-between">
-          {/* Background line */}
+        <div className="relative flex items-center">
+          {/* Background line — spans first↔last icon centers */}
           <div
-            className="absolute left-[5%] right-[5%] top-1/2 h-[2px] -z-0 -translate-y-1/2"
-            style={{ backgroundColor: "var(--store-outline-variant)" }}
-          />
-          {/* Active line */}
-          <div
-            className="absolute left-[5%] top-1/2 h-[2px] -z-0 -translate-y-1/2 transition-all duration-500"
+            className="absolute h-[2px] -z-0 -translate-y-1/2"
             style={{
+              top: "18px",
+              left: `${(0.5 / STEPS.length) * 100}%`,
+              right: `${(0.5 / STEPS.length) * 100}%`,
+              backgroundColor: "var(--store-outline-variant)",
+            }}
+          />
+          {/* Active line — first icon center → current icon center */}
+          <div
+            className="absolute h-[2px] -z-0 -translate-y-1/2 transition-all duration-500"
+            style={{
+              top: "18px",
+              left: `${(0.5 / STEPS.length) * 100}%`,
+              width: `${(currentStep / STEPS.length) * 100}%`,
               backgroundColor: "var(--store-primary)",
-              width:
-                currentStep === 0
-                  ? "0%"
-                  : `${(currentStep / (STEPS.length - 1)) * 90}%`,
             }}
           />
 
@@ -665,7 +819,7 @@ export default function ConfiguradorPage() {
                 key={s.key}
                 onClick={() => !locked && goToStep(i)}
                 disabled={locked}
-                className="flex flex-col items-center relative z-10 px-1 group disabled:cursor-not-allowed disabled:opacity-40"
+                className="relative z-10 flex flex-1 flex-col items-center px-1 group disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <div
                   className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold shadow-sm transition-all duration-300"
@@ -700,19 +854,45 @@ export default function ConfiguradorPage() {
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* ── Left: Product Grid (65%) ─────────────────────── */}
         <div className="flex w-full flex-col gap-4 lg:w-[65%]">
+          {/* Category header */}
+          <div
+            className="flex items-center justify-between rounded-xl border px-4 py-3"
+            style={{
+              backgroundColor: "var(--store-surface-container-lowest)",
+              borderColor: viewColor + "45",
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-lg"
+                style={{ backgroundColor: `${viewColor}18`, color: viewColor }}
+              >
+                <span className="material-symbols-outlined text-base">{viewIcon}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "var(--store-on-surface)" }}>
+                  {viewLabel}
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--store-on-surface-variant)" }}>
+                  {isExtraView ? "Componente opcional" : "Paso " + (currentStep + 1) + " de " + STEPS.length}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Compatibility Banner */}
-          {bannerText && (
+          {!isExtraView && bannerText && (
             <div
               className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm"
               style={{
-                backgroundColor: `${STEP_COLORS[stepKey]}0a`,
-                borderColor: `${STEP_COLORS[stepKey]}30`,
+                backgroundColor: `${viewColor}0a`,
+                borderColor: `${viewColor}30`,
                 color: "var(--store-on-surface)",
               }}
             >
               <span
                 className="material-symbols-outlined text-base"
-                style={{ color: STEP_COLORS[stepKey] }}
+                style={{ color: viewColor }}
               >
                 info
               </span>
@@ -749,13 +929,13 @@ export default function ConfiguradorPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={`Buscar ${stepDef.label.toLowerCase()}...`}
+                placeholder={`Buscar ${viewLabel.toLowerCase()}...`}
                 className="w-full rounded-lg border py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2"
                 style={{
                   backgroundColor: "var(--store-surface-container-lowest)",
                   borderColor: "var(--store-outline-variant)",
                   color: "var(--store-on-surface)",
-                  ["--tw-ring-color" as string]: STEP_COLORS[stepKey] + "40",
+                  ["--tw-ring-color" as string]: viewColor + "40",
                 }}
               />
             </div>
@@ -806,8 +986,8 @@ export default function ConfiguradorPage() {
               <div
                 className="mb-3 h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
                 style={{
-                  borderColor: `${STEP_COLORS[stepKey]}40`,
-                  borderTopColor: STEP_COLORS[stepKey],
+                  borderColor: `${viewColor}40`,
+                  borderTopColor: viewColor,
                 }}
               />
               <p
@@ -823,14 +1003,14 @@ export default function ConfiguradorPage() {
           {!loading && (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {filteredProducts.map((product) => {
-                const isSelected = selected[stepKey]?.id === product.id;
+                const isSelected = isViewSelected(product);
                 const outOfStock = product.stock <= 0;
-                const tags = buildTags(product);
-                const color = STEP_COLORS[stepKey];
+                const tags = buildViewTags(product);
+                const color = viewColor;
                 return (
                   <div
                     key={product.id}
-                    onClick={() => selectProduct(product)}
+                    onClick={() => selectViewProduct(product)}
                     className={`group relative flex cursor-pointer flex-col rounded-xl border p-4 transition-all duration-200 ${
                       outOfStock
                         ? "opacity-50 grayscale cursor-not-allowed"
@@ -956,9 +1136,9 @@ export default function ConfiguradorPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (isSelected) {
-                              deselectCurrent();
+                              deselectView();
                             } else {
-                              selectProduct(product);
+                              selectViewProduct(product);
                             }
                           }}
                           className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200"
@@ -1012,6 +1192,7 @@ export default function ConfiguradorPage() {
           )}
 
           {/* Step navigation buttons (mobile / bottom of grid) */}
+          {!isExtraView && (
           <div className="flex items-center justify-between">
             <button
               disabled={currentStep === 0}
@@ -1050,6 +1231,7 @@ export default function ConfiguradorPage() {
               <span className="material-symbols-outlined text-lg">chevron_right</span>
             </button>
           </div>
+          )}
         </div>
 
         {/* ── Right: Sticky Build Summary (35%) ──────────────── */}
@@ -1171,6 +1353,95 @@ export default function ConfiguradorPage() {
                   </div>
                 );
               })}
+
+              {/* ── Opcionales (SSD · Monitor) ─────────────────── */}
+              <div
+                className="mb-2 flex items-center gap-1.5 px-1 pt-3 text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: "var(--store-on-surface-variant)" }}
+              >
+                Opcionales
+              </div>
+
+              {EXTRAS.map((ex) => {
+                const exKey = ex.key;
+                const color = EXTRA_COLORS[exKey];
+                const item = extras[exKey];
+                const isActive = activeExtra === exKey;
+                return (
+                  <div
+                    key={exKey}
+                    onClick={() =>
+                      isActive
+                        ? goToStep(currentStep)
+                        : openExtra(exKey)
+                    }
+                    className="mb-2 flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2.5 transition-all hover:bg-[var(--store-surface-container-low)]"
+                    style={{
+                      borderColor: isActive ? color : "var(--store-outline-variant)",
+                      borderStyle: item ? "solid" : "dashed",
+                      backgroundColor: isActive
+                        ? `${color}08`
+                        : "var(--store-surface-container-lowest)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden"
+                        style={{
+                          backgroundColor: item ? `${color}18` : "var(--store-surface-container-high)",
+                          color: item ? color : "var(--store-on-surface-variant)",
+                        }}
+                      >
+                        {item?.imagenUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.imagenUrl}
+                            alt={item.nombre}
+                            className="h-full w-full object-contain p-0.5"
+                          />
+                        ) : (
+                          <span className="material-symbols-outlined text-base">
+                            {ex.icon}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="flex items-center gap-1.5 text-xs font-semibold"
+                          style={{ color: "var(--store-on-surface)" }}
+                        >
+                          {ex.label}
+                          <span
+                            className="text-[10px] font-bold"
+                            style={{ color: "#ef4444" }}
+                          >
+                            [Opcional]
+                          </span>
+                        </p>
+                        <p
+                          className="truncate text-[11px]"
+                          style={{
+                            color: "var(--store-on-surface-variant)",
+                            fontStyle: item ? "normal" : "italic",
+                          }}
+                        >
+                          {item ? item.nombre : "Elegir producto"}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className="ml-2 flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold"
+                      style={{ color: item ? "var(--store-primary)" : "var(--store-on-surface-variant)" }}
+                    >
+                      {item
+                        ? displayPrice(item.precio, item.moneda, currency, rate.venta)
+                        : currency === "USD"
+                          ? "$0.00"
+                          : "S/0.00"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Power Estimation */}
@@ -1275,7 +1546,11 @@ export default function ConfiguradorPage() {
                 className="mt-2 text-center text-[11px]"
                 style={{ color: "var(--store-on-surface-variant)" }}
               >
-                {selectedCount} de {STEPS.length} componentes seleccionados
+                {selectedCount} de {STEPS.length} componentes
+                {selectedExtrasCount > 0
+                  ? ` + ${selectedExtrasCount} extra${selectedExtrasCount > 1 ? "s" : ""}`
+                  : ""}{" "}
+                seleccionados
               </p>
             </div>
           </div>

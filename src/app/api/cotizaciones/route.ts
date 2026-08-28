@@ -20,6 +20,7 @@ interface ConfigProduct {
 
 interface SavePayload {
   selections: Record<string, ConfigProduct>;
+  extras?: Record<string, ConfigProduct>;
   totalConsumption: number;
   totalPrice: number;
   moneda: string;
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Payload inválido." }, { status: 400 });
   }
 
-  const { selections, totalConsumption, totalPrice, moneda } = body;
+  const { selections, extras, totalConsumption, totalPrice, moneda } = body;
 
   if (!selections || typeof selections !== "object") {
     return NextResponse.json({ error: "selections es requerido." }, { status: 400 });
@@ -87,6 +88,24 @@ export async function POST(request: Request) {
     };
   });
 
+  /* Build items for extras (SSD, Monitor, …) */
+  const extraItems = (extras && typeof extras === "object"
+    ? Object.entries(extras)
+    : []
+  )
+    .filter(([, p]) => p && typeof p === "object" && p.id)
+    .map(([key, p]) => ({
+      stepKey: `extra-${key}`,
+      productId: p.id,
+      nombre: p.nombre,
+      marca: p.marca,
+      precio: p.precio ?? 0,
+      moneda: p.moneda ?? "USD",
+      imagenUrl: p.imagenUrl,
+      category: p.category,
+      categoryKey: key,
+    }));
+
   if (items.length === 0) {
     return NextResponse.json({ error: "Debes seleccionar al menos un componente." }, { status: 400 });
   }
@@ -102,11 +121,14 @@ export async function POST(request: Request) {
       totalConsumption,
       totalPrice,
       moneda: moneda ?? "USD",
-      configuracion: selections as unknown as Record<string, unknown>,
+      configuracion: {
+        ...selections,
+        ...(extraItems.length > 0 ? { extras: extras as Record<string, ConfigProduct> } : {}),
+      } as unknown as Record<string, unknown>,
       createdAt: now,
       expiresAt,
       items: {
-        create: items,
+        create: [...items, ...extraItems],
       },
     },
     include: { items: true },
