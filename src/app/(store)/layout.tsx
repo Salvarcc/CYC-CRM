@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 
 import { AuthButton } from "@/components/common/auth-button";
@@ -52,6 +53,35 @@ function CartButton() {
         </span>
       )}
     </Link>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Re-render once mounted so the client's persisted theme doesn't
+    // cause an SSR/CSR hydration mismatch on the toggle label/icon.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted && theme === "dark";
+  const label = isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+
+  return (
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="flex items-center justify-center transition-colors"
+      style={{ color: "var(--store-on-surface-variant)" }}
+      title={label}
+      aria-label={label}
+    >
+      <span className="material-symbols-outlined">
+        {isDark ? "light_mode" : "dark_mode"}
+      </span>
+    </button>
   );
 }
 
@@ -128,6 +158,7 @@ function StoreShell({ children }: { children: React.ReactNode }) {
             >
               Cotiza tu PC
             </Link>
+            <ThemeToggle />
             <CartButton />
             <AuthButton />
             <button

@@ -28,6 +28,8 @@ const CATEGORY_OPTIONS = [
   "Refrigeración",
   "Gabinetes",
   "Fuentes de Poder",
+  "Almacenamiento SSD",
+  "Monitores",
 ];
 
 const BRAND_OPTIONS = [
@@ -395,7 +397,7 @@ export default function TiendaPage() {
                 return (
                   <div
                     key={product.id}
-                    className="group relative flex flex-col overflow-hidden rounded-xl border transition-all duration-300 hover:border-[#cbd5e1] hover:shadow-[0px_10px_15px_-3px_rgba(15,23,42,0.08)]"
+                    className="group relative flex flex-col overflow-hidden rounded-xl border transition-all duration-300 hover:border-[var(--store-outline)] hover:shadow-[0px_10px_15px_-3px_rgba(15,23,42,0.08)]"
                     style={{
                       backgroundColor: "var(--store-surface-container-lowest)",
                       borderColor: "var(--store-outline-variant)",
@@ -405,8 +407,8 @@ export default function TiendaPage() {
                       <div
                         className="absolute left-2 top-2 z-10 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wide"
                         style={{
-                          backgroundColor: "#fef3c7",
-                          color: "#92400e",
+                          backgroundColor: "var(--store-badge-amber-bg)",
+                          color: "var(--store-badge-amber-fg)",
                         }}
                       >
                         Últimas unidades
@@ -428,8 +430,8 @@ export default function TiendaPage() {
                             key={tag}
                             className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wide"
                             style={{
-                              backgroundColor: "#e0f2fe",
-                              color: "#0284c7",
+                              backgroundColor: "var(--store-badge-blue-bg)",
+                              color: "var(--store-badge-blue-fg)",
                             }}
                           >
                             {tag}

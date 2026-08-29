@@ -28,19 +28,19 @@ export async function GET() {
   });
 
   const result = clientes.map((c) => {
-    const totalOrders = c.cotizaciones.length;
-    const totalSpent = c.cotizaciones.reduce(
+    const totalCotizaciones = c.cotizaciones.length;
+    const totalCotizado = c.cotizaciones.reduce(
       (sum, cot) => sum + Number(cot.totalPrice),
       0,
     );
-    const lastPurchase = c.cotizaciones.length > 0 ? c.cotizaciones[0].createdAt : null;
+    const lastCotizacion = c.cotizaciones.length > 0 ? c.cotizaciones[0].createdAt : null;
 
     let status: string;
     let statusColor: string;
-    if (totalOrders >= 4) {
+    if (totalCotizaciones >= 4) {
       status = "VIP";
       statusColor = "violet";
-    } else if (totalOrders >= 1) {
+    } else if (totalCotizaciones >= 1) {
       status = "Activo";
       statusColor = "success";
     } else {
@@ -53,10 +53,10 @@ export async function GET() {
       name: c.nombre,
       email: c.correo,
       phone: c.telefono,
-      totalOrders,
-      totalSpent: `$${totalSpent.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      lastPurchase: lastPurchase
-        ? lastPurchase.toLocaleDateString("es-PE", {
+      totalCotizaciones,
+      totalCotizado: `$${totalCotizado.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      lastCotizacion: lastCotizacion
+        ? lastCotizacion.toLocaleDateString("es-PE", {
             day: "2-digit",
             month: "short",
             year: "numeric",

@@ -17,7 +17,6 @@ import {
   TableRoot,
   TableRow,
 } from "@/components/tailgrids/core/table";
-import { MenuDotsIcon } from "@/utils/icon";
 import { useEffect, useState } from "react";
 import { DownloadIcon, FilterIcon } from "./icons";
 
@@ -41,9 +40,9 @@ interface Client {
   name: string;
   email: string;
   phone: string;
-  totalOrders: number;
-  totalSpent: string;
-  lastPurchase: string;
+  totalCotizaciones: number;
+  totalCotizado: string;
+  lastCotizacion: string;
   status: string;
   statusColor: BadgeColor;
 }
@@ -74,10 +73,6 @@ export default function ClientesPage() {
   const totalClients = clients.length;
   const activeClients = clients.filter((c) => c.status === "Activo").length;
   const vipClients = clients.filter((c) => c.status === "VIP").length;
-  const totalRevenue = clients.reduce((sum, c) => {
-    const val = parseFloat(c.totalSpent.replace(/[$,]/g, ""));
-    return sum + val;
-  }, 0);
 
   return (
     <div className="mt-6 space-y-5">
@@ -151,25 +146,6 @@ export default function ClientesPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm leading-5 font-medium text-text-tertiary">
-                    Ingresos por Clientes
-                  </p>
-                  <p className="mt-1 text-2xl leading-8 font-semibold text-text-primary">
-                    ${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-badge-warning-background">
-                  <span className="text-badge-warning-icon-color material-symbols-outlined text-xl">
-                    payments
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Clients Table */}
@@ -209,32 +185,29 @@ export default function ClientesPage() {
                     Contacto
                   </TableHead>
                   <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
-                    Pedidos
+                    Cotizaciones
                   </TableHead>
                   <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
-                    Total Gastado
+                    Total Cotizado
                   </TableHead>
                   <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
-                    Última Compra
+                    Última Cotización
                   </TableHead>
                   <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
                     Estado
-                  </TableHead>
-                  <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
-                    <div className="flex items-center justify-center">Acción</div>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="px-6 py-12 text-center text-sm text-text-tertiary">
+                    <TableCell colSpan={6} className="px-6 py-12 text-center text-sm text-text-tertiary">
                       Cargando clientes...
                     </TableCell>
                   </TableRow>
                 ) : filteredClients.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="px-6 py-12 text-center text-sm text-text-tertiary">
+                    <TableCell colSpan={6} className="px-6 py-12 text-center text-sm text-text-tertiary">
                       No se encontraron clientes.
                     </TableCell>
                   </TableRow>
@@ -271,29 +244,18 @@ export default function ClientesPage() {
                         </div>
                       </TableCell>
                       <TableCell className="px-6 py-3.5 text-sm leading-5 font-medium text-text-primary">
-                        {client.totalOrders}
+                        {client.totalCotizaciones}
                       </TableCell>
                       <TableCell className="px-6 py-3.5 text-sm leading-5 font-medium text-text-primary">
-                        {client.totalSpent}
+                        {client.totalCotizado}
                       </TableCell>
                       <TableCell className="px-6 py-3.5 text-sm leading-5 text-text-secondary">
-                        {client.lastPurchase}
+                        {client.lastCotizacion}
                       </TableCell>
                       <TableCell className="px-6 py-3.5">
                         <Badge color={client.statusColor} size="sm">
                           {client.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="px-6 py-3.5">
-                        <div className="flex items-center justify-center">
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            className="h-7.5 w-8 rounded-lg border-none p-1.5 text-icon-secondary shadow-xs"
-                          >
-                            <MenuDotsIcon />
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))

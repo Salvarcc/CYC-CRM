@@ -235,6 +235,8 @@ export default function ConfiguradorPage() {
     monitor: null,
   });
   const [activeExtra, setActiveExtra] = useState<ExtraKey | null>(null);
+  const [activeRamSlot, setActiveRamSlot] = useState<number | null>(null);
+  const [ramExtra, setRamExtra] = useState<(Product | null)[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("Todas");
@@ -287,6 +289,25 @@ export default function ConfiguradorPage() {
           }
           setExtras(restoredExtras);
 
+          /* Restore extra RAM sticks (bounded by motherboard ramSlots) */
+          const mbRestored = restored.motherboard;
+          const maxExtra = mbRestored
+            ? Math.max(1, toNum(mbRestored.attrs.ramSlots)) - 1
+            : 0;
+          const savedRamExtra = (saved as { ramExtra?: (Partial<Product> | null)[] })
+            .ramExtra ?? [];
+          const restoredRamExtra: (Product | null)[] = [];
+          for (let i = 0; i < maxExtra; i++) {
+            const item = savedRamExtra[i];
+            if (!item?.id) {
+              restoredRamExtra.push(null);
+              continue;
+            }
+            const full = data.find((p) => p.id === item.id);
+            restoredRamExtra.push(full ?? null);
+          }
+          setRamExtra(restoredRamExtra);
+
           /* Jump to first incomplete step */
           const firstIncomplete = STEP_KEYS.findIndex((k) => !restored[k]);
           setCurrentStep(firstIncomplete >= 0 ? firstIncomplete : STEP_KEYS.length - 1);
@@ -319,23 +340,56 @@ export default function ConfiguradorPage() {
   const stepDef = STEPS[currentStep];
   const stepKey = stepDef.key;
 
-  /* ── Unified active "view": either a required step or an extra ── */
+  /* ── Unified active "view": a required step, an extra, or a RAM slot ── */
 
   const isExtraView = activeExtra !== null;
+  const isRamSlotView = !isExtraView && activeRamSlot !== null;
   const activeExtraDef = isExtraView
     ? EXTRAS.find((e) => e.key === activeExtra) ?? null
     : null;
-  const viewLabel = activeExtraDef ? activeExtraDef.label : stepDef.label;
+  const viewLabel = activeExtraDef
+    ? activeExtraDef.label
+    : isRamSlotView
+      ? `Ranura RAM ${activeRamSlot! + 1}`
+      : stepDef.label;
   const viewColor = activeExtraDef
     ? EXTRA_COLORS[activeExtra!]
-    : STEP_COLORS[stepKey];
-  const viewIcon = activeExtraDef ? activeExtraDef.icon : stepDef.icon;
+    : isRamSlotView
+      ? STEP_COLORS.ram
+      : STEP_COLORS[stepKey];
+  const viewIcon = activeExtraDef
+    ? activeExtraDef.icon
+    : isRamSlotView
+      ? "dns"
+      : stepDef.icon;
 
   const selectedCpu = selected.cpu;
   const selectedMotherboard = selected.motherboard;
   const selectedGpu = selected.gpu;
   const selectedCooler = selected.cooler;
   const selectedCase = selected.case;
+
+  /* ── RAM slots (derived from motherboard ramSlots) ─────────────── */
+
+  const ramSlotCount = Math.max(1, toNum(selectedMotherboard?.attrs.ramSlots));
+  const ramSticks = useMemo<(Product | null)[]>(() => {
+    const arr: (Product | null)[] = [selected.ram];
+    for (let i = 0; i < ramSlotCount - 1; i++) arr.push(ramExtra[i] ?? null);
+    return arr;
+  }, [selected.ram, ramExtra, ramSlotCount]);
+
+  const ramCompatibleProducts = useMemo(() => {
+    let list = products.filter((p) => p.categoryKey === "ram");
+    if (selectedMotherboard) {
+      const mbTypes = toStringArray(selectedMotherboard.attrs.tipoMemoria);
+      list = list.filter(
+        (p) =>
+          p.stock > 0 &&
+          mbTypes.includes(p.attrs.tipoMemoria as string),
+      );
+    }
+    return list;
+  }, [products, selectedMotherboard]);
 
   /* ── Compatibility filtering ─────────────────────────────────── */
 
@@ -431,8 +485,11 @@ export default function ConfiguradorPage() {
         (p) => p.categoryKey === activeExtra && p.stock > 0,
       );
     }
+    if (isRamSlotView) {
+      return ramCompatibleProducts;
+    }
     return compatibilityProducts;
-  }, [activeExtra, products, compatibilityProducts]);
+  }, [activeExtra, isRamSlotView, ramCompatibleProducts, products, compatibilityProducts]);
 
   /* ── Search, brand, sort filtering ───────────────────────────── */
 
@@ -533,8 +590,12 @@ export default function ConfiguradorPage() {
       EXTRAS.reduce(
         (sum, ex) => sum + toPreferredCurrency(extras[ex.key]?.precio ?? 0, extras[ex.key]?.moneda ?? "USD", currency, rate.venta),
         0,
+      ) +
+      ramExtra.reduce(
+        (sum, p) => sum + toPreferredCurrency(p?.precio ?? 0, p?.moneda ?? "USD", currency, rate.venta),
+        0,
       ),
-    [selected, extras, currency, rate.venta],
+    [selected, extras, ramExtra, currency, rate.venta],
   );
 
   const totalConsumption = useMemo(() => {
@@ -625,6 +686,11 @@ export default function ConfiguradorPage() {
       }
       return next;
     });
+    /* Changing the motherboard (or first RAM stick) invalidates
+       the extra RAM sticks, since slot count / type may change */
+    if (stepKey === "motherboard") {
+      setRamExtra([]);
+    }
   }
 
   function deselectCurrent() {
@@ -636,11 +702,43 @@ export default function ConfiguradorPage() {
       }
       return next;
     });
+    if (stepKey === "ram" || stepKey === "motherboard") setRamExtra([]);
+  }
+
+  function selectRamSlotProduct(slotIndex: number, product: Product) {
+    if (product.stock <= 0) return;
+    if (slotIndex === 0) {
+      selectProduct(product);
+      return;
+    }
+    setRamExtra((prev) => {
+      const next = [...prev];
+      next[slotIndex - 1] = product;
+      return next;
+    });
+    setActiveRamSlot(null);
+    setSearch("");
+    setBrandFilter("Todas");
+    setSortOrder("Relevancia");
+  }
+
+  function clearRamSlot(slotIndex: number) {
+    if (slotIndex === 0) {
+      deselectCurrent();
+      return;
+    }
+    setRamExtra((prev) => {
+      const next = [...prev];
+      next[slotIndex - 1] = null;
+      return next;
+    });
   }
 
   function selectViewProduct(product: Product) {
     if (isExtraView) {
       toggleExtra(activeExtra!, product);
+    } else if (isRamSlotView) {
+      selectRamSlotProduct(activeRamSlot!, product);
     } else {
       selectProduct(product);
     }
@@ -648,12 +746,16 @@ export default function ConfiguradorPage() {
 
   function isViewSelected(product: Product): boolean {
     if (isExtraView) return extras[activeExtra!]?.id === product.id;
+    if (isRamSlotView) return ramSticks[activeRamSlot!]?.id === product.id;
     return selected[stepKey]?.id === product.id;
   }
 
   function deselectView() {
     if (isExtraView) {
       setExtras((prev) => ({ ...prev, [activeExtra!]: null }));
+    } else if (isRamSlotView) {
+      clearRamSlot(activeRamSlot!);
+      setActiveRamSlot(null);
     } else {
       deselectCurrent();
     }
@@ -668,6 +770,7 @@ export default function ConfiguradorPage() {
     if (i > furthestReachable) return;
     setCurrentStep(i);
     setActiveExtra(null);
+    setActiveRamSlot(null);
     setSearch("");
     setBrandFilter("Todas");
     setSortOrder("Relevancia");
@@ -675,6 +778,15 @@ export default function ConfiguradorPage() {
 
   function openExtra(key: ExtraKey) {
     setActiveExtra(key);
+    setActiveRamSlot(null);
+    setSearch("");
+    setBrandFilter("Todas");
+    setSortOrder("Relevancia");
+  }
+
+  function openRamSlot(i: number) {
+    setActiveExtra(null);
+    setActiveRamSlot(i);
     setSearch("");
     setBrandFilter("Todas");
     setSortOrder("Relevancia");
@@ -737,13 +849,30 @@ export default function ConfiguradorPage() {
         },
         {} as Record<string, Partial<Product>>,
       ),
+      ramExtra: ramExtra
+        .map((p) =>
+          p
+            ? {
+                id: p.id,
+                nombre: p.nombre,
+                marca: p.marca,
+                precio: p.precio,
+                moneda: p.moneda,
+                category: p.category,
+                categoryKey: p.categoryKey,
+                imagenUrl: p.imagenUrl,
+                attrs: p.attrs,
+              }
+            : null,
+        )
+        .filter(Boolean) as Partial<Product>[],
       totalConsumption,
       totalPrice,
       timestamp: new Date().toISOString(),
     };
     localStorage.setItem("cym-configuracion", JSON.stringify(payload));
     router.push("/cotizacion");
-  }, [selected, extras, totalConsumption, totalPrice, router]);
+  }, [selected, extras, ramExtra, totalConsumption, totalPrice, router]);
 
   /* ── Brand options for current step ──────────────────────────── */
 
@@ -874,14 +1003,18 @@ export default function ConfiguradorPage() {
                   {viewLabel}
                 </p>
                 <p className="text-[11px]" style={{ color: "var(--store-on-surface-variant)" }}>
-                  {isExtraView ? "Componente opcional" : "Paso " + (currentStep + 1) + " de " + STEPS.length}
+                  {isExtraView
+                    ? "Componente opcional"
+                    : isRamSlotView
+                      ? "Ranura de RAM"
+                      : "Paso " + (currentStep + 1) + " de " + STEPS.length}
                 </p>
               </div>
             </div>
           </div>
 
           {/* Compatibility Banner */}
-          {!isExtraView && bannerText && (
+          {!isExtraView && !isRamSlotView && bannerText && (
             <div
               className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm"
               style={{
@@ -1044,10 +1177,10 @@ export default function ConfiguradorPage() {
                       style={{
                         backgroundColor: outOfStock
                           ? "var(--store-error-container)"
-                          : "#E8F5E9",
+                          : "var(--store-badge-green-bg)",
                         color: outOfStock
                           ? "var(--store-on-error-container)"
-                          : "#2E7D32",
+                          : "var(--store-badge-green-fg)",
                       }}
                     >
                       {outOfStock ? "Sin Stock" : "En Stock"}
@@ -1279,77 +1412,164 @@ export default function ConfiguradorPage() {
                   (s.key === "gpu" && toBool(selected.cpu?.attrs.tieneGraficosIntegrados)) ||
                   (s.key === "cooler" && !toBool(selected.cpu?.attrs.requiereCooler)) ||
                   (s.key === "psu" && toBool(selected.case?.attrs.tieneFuentePoder));
+                const ramExtraCount =
+                  s.key === "ram" ? ramExtra.filter(Boolean).length : 0;
                 return (
-                  <div
-                    key={s.key}
-                    onClick={() => !locked && goToStep(i)}
-                    className={`mb-2 flex items-center justify-between rounded-lg border px-3 py-2.5 transition-all ${locked ? "cursor-not-allowed opacity-30" : "cursor-pointer"}`}
-                    style={{
-                      borderColor: isCurrent ? color : "var(--store-outline-variant)",
-                      borderStyle: isCurrent && !item ? "dashed" : "solid",
-                      backgroundColor: isCurrent
-                        ? `${color}08`
-                        : "var(--store-surface-container-lowest)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden"
-                        style={{
-                          backgroundColor: item
-                            ? `${color}18`
-                            : "var(--store-surface-container-high)",
-                          color: item ? color : "var(--store-on-surface-variant)",
-                        }}
-                      >
-                        {item?.imagenUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={item.imagenUrl}
-                            alt={item.nombre}
-                            className="h-full w-full object-contain p-0.5"
-                          />
-                        ) : (
-                          <span className="material-symbols-outlined text-base">
-                            {s.icon}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className="flex items-center gap-1.5 text-xs font-semibold"
+                  <div key={s.key} className="mb-2">
+                    {/* Main component row */}
+                    <div
+                      onClick={() => !locked && goToStep(i)}
+                      className={`flex items-center justify-between rounded-lg border px-3 py-2.5 transition-all ${locked ? "cursor-not-allowed opacity-30" : "cursor-pointer"}`}
+                      style={{
+                        borderColor: isCurrent ? color : "var(--store-outline-variant)",
+                        borderStyle: isCurrent && !item ? "dashed" : "solid",
+                        backgroundColor: isCurrent
+                          ? `${color}08`
+                          : "var(--store-surface-container-lowest)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden"
                           style={{
-                            color: isCurrent ? color : "var(--store-on-surface)",
+                            backgroundColor: item
+                              ? `${color}18`
+                              : "var(--store-surface-container-high)",
+                            color: item ? color : "var(--store-on-surface-variant)",
                           }}
                         >
-                          {s.label}
-                          {isOpt && (
-                            <span className="text-[10px] font-bold" style={{ color: "#ef4444" }}>
-                              [Opcional]
+                          {item?.imagenUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.imagenUrl}
+                              alt={item.nombre}
+                              className="h-full w-full object-contain p-0.5"
+                            />
+                          ) : (
+                            <span className="material-symbols-outlined text-base">
+                              {s.icon}
                             </span>
                           )}
-                        </p>
-                        <p
-                          className="truncate text-[11px]"
-                          style={{
-                            color: "var(--store-on-surface-variant)",
-                            fontStyle: item ? "normal" : "italic",
-                          }}
-                        >
-                          {item
-                            ? item.nombre
-                            : isCurrent
-                              ? "Pendiente de selección"
-                              : "---"}
-                        </p>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="flex items-center gap-1.5 text-xs font-semibold"
+                            style={{
+                              color: isCurrent ? color : "var(--store-on-surface)",
+                            }}
+                          >
+                            {s.label}
+                            {isOpt && (
+                              <span className="text-[10px] font-bold" style={{ color: "#ef4444" }}>
+                                [Opcional]
+                              </span>
+                            )}
+                          </p>
+                          <p
+                            className="truncate text-[11px]"
+                            style={{
+                              color: "var(--store-on-surface-variant)",
+                              fontStyle: item ? "normal" : "italic",
+                            }}
+                          >
+                            {item
+                              ? s.key === "ram" && ramExtraCount > 0
+                                ? `${item.nombre} (+${ramExtraCount} módulo${ramExtraCount > 1 ? "s" : ""})`
+                                : item.nombre
+                              : isCurrent
+                                ? "Pendiente de selección"
+                                : "---"}
+                          </p>
+                        </div>
                       </div>
+                      <span
+                        className="ml-2 whitespace-nowrap text-[11px] font-semibold"
+                        style={{ color: item ? "var(--store-primary)" : "var(--store-on-surface-variant)" }}
+                      >
+                        {item ? displayPrice(item.precio, item.moneda, currency, rate.venta) : currency === "USD" ? "$0.00" : "S/0.00"}
+                      </span>
                     </div>
-                    <span
-                      className="ml-2 whitespace-nowrap text-[11px] font-semibold"
-                      style={{ color: item ? "var(--store-primary)" : "var(--store-on-surface-variant)" }}
-                    >
-                      {item ? displayPrice(item.precio, item.moneda, currency, rate.venta) : currency === "USD" ? "$0.00" : "S/0.00"}
-                    </span>
+
+                    {/* RAM module slots (below the RAM row, based on motherboard ramSlots) */}
+                    {s.key === "ram" && ramSlotCount > 1 && (
+                      <div
+                        className="mt-1.5 grid grid-cols-1 gap-1.5 rounded-lg border border-dashed p-2"
+                        style={{
+                          borderColor: "var(--store-outline-variant)",
+                          backgroundColor: "var(--store-surface-container-lowest)",
+                        }}
+                      >
+                        {ramSticks.map((stick, idx) => {
+                          const isOptional = idx > 0;
+                          const slotActive = isRamSlotView && activeRamSlot === idx;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                if (idx === 0) {
+                                  goToStep(currentStep);
+                                } else {
+                                  openRamSlot(idx);
+                                }
+                              }}
+                              className={`flex items-center justify-between rounded-md border px-2.5 py-1.5 text-left transition-all ${
+                                stick ? "" : "border-dashed"
+                              }`}
+                              style={{
+                                borderColor: slotActive
+                                  ? STEP_COLORS.ram
+                                  : stick
+                                    ? `${STEP_COLORS.ram}80`
+                                    : "var(--store-outline-variant)",
+                                backgroundColor: slotActive
+                                  ? `${STEP_COLORS.ram}10`
+                                  : stick
+                                    ? `${STEP_COLORS.ram}08`
+                                    : "transparent",
+                              }}
+                            >
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                <div className="min-w-0 flex-1">
+                                  <p className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: "var(--store-on-surface)" }}>
+                                    RAM {idx + 1}
+                                    {isOptional && (
+                                      <span className="text-[9px] font-bold" style={{ color: "#ef4444" }}>
+                                        [Opc.]
+                                      </span>
+                                    )}
+                                  </p>
+                                  <p
+                                    className="truncate text-[10px]"
+                                    style={{
+                                      color: stick
+                                        ? "var(--store-on-surface-variant)"
+                                        : STEP_COLORS.ram,
+                                      fontStyle: stick ? "normal" : "italic",
+                                    }}
+                                  >
+                                    {stick ? stick.nombre : "Elegir módulo"}
+                                  </p>
+                                </div>
+                              </div>
+                              <span
+                                className="ml-1 whitespace-nowrap text-[10px] font-semibold"
+                                style={{
+                                  color: stick
+                                    ? "var(--store-primary)"
+                                    : "var(--store-on-surface-variant)",
+                                }}
+                              >
+                                {stick
+                                  ? displayPrice(stick.precio, stick.moneda, currency, rate.venta)
+                                  : currency === "USD"
+                                    ? "$0.00"
+                                    : "S/0.00"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}

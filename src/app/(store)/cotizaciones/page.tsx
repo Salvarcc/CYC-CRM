@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/use-currency";
 import { displayPrice, formatPrice, toPreferredCurrency } from "@/utils/currency";
+import type { ConfigProduct } from "@/utils/pdf";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -59,6 +60,15 @@ const EXTRA_META: Record<string, { label: string; icon: string; color: string }>
 };
 
 const EXTRA_ORDER = ["ssd", "monitor"] as const;
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function getRamSticks(config: Record<string, unknown>): ConfigProduct[] {
+  const arr = Array.isArray(config.ramExtra) ? config.ramExtra : [];
+  return arr.filter((p): p is ConfigProduct => Boolean(p && typeof p === "object" && "nombre" in p));
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -150,13 +160,17 @@ export default function MisCotizacionesPage() {
 
   function handleWhatsApp(c: Cotizacion) {
     const config = c.configuracion as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
-    const extras = (config.extras ?? {}) as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+    const extras = (config.extras ?? {}) as unknown as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+    const ramSticks = getRamSticks(config as Record<string, unknown>);
     const lines: string[] = [];
     for (const key of STEP_ORDER) {
       const p = config[key];
       if (!p) continue;
       const meta = STEP_META[key];
       lines.push(`${meta.label}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate.venta)}`);
+    }
+    for (const p of ramSticks) {
+      lines.push(`Memoria RAM (extra): ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate.venta)}`);
     }
     for (const key of EXTRA_ORDER) {
       const p = extras[key];
@@ -167,6 +181,8 @@ export default function MisCotizacionesPage() {
     const total = STEP_ORDER.reduce((sum, k) => {
       const p = config[k];
       if (!p) return sum;
+      return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
+    }, 0) + ramSticks.reduce((sum, p) => {
       return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
     }, 0) + EXTRA_ORDER.reduce((sum, k) => {
       const p = extras[k];
@@ -184,13 +200,17 @@ export default function MisCotizacionesPage() {
 
   function handleEmail(c: Cotizacion) {
     const config = c.configuracion as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
-    const extras = (config.extras ?? {}) as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+    const extras = (config.extras ?? {}) as unknown as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+    const ramSticks = getRamSticks(config as Record<string, unknown>);
     const lines: string[] = [];
     for (const key of STEP_ORDER) {
       const p = config[key];
       if (!p) continue;
       const meta = STEP_META[key];
       lines.push(`${meta.label}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate.venta)}`);
+    }
+    for (const p of ramSticks) {
+      lines.push(`Memoria RAM (extra): ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate.venta)}`);
     }
     for (const key of EXTRA_ORDER) {
       const p = extras[key];
@@ -201,6 +221,8 @@ export default function MisCotizacionesPage() {
     const total = STEP_ORDER.reduce((sum, k) => {
       const p = config[k];
       if (!p) return sum;
+      return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
+    }, 0) + ramSticks.reduce((sum, p) => {
       return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
     }, 0) + EXTRA_ORDER.reduce((sum, k) => {
       const p = extras[k];
@@ -223,7 +245,8 @@ export default function MisCotizacionesPage() {
       const config = c.configuracion as Record<string, unknown>;
       const configData = {
         selections: config as Record<string, never>,
-        extras: (config.extras ?? {}) as Record<string, never>,
+        extras: (config.extras ?? {}) as unknown as Record<string, never>,
+        ramExtra: getRamSticks(config),
         totalConsumption: c.totalConsumption,
         totalPrice: c.totalPrice,
         timestamp: c.createdAt,
@@ -368,10 +391,13 @@ export default function MisCotizacionesPage() {
           const isExpanded = expandedId === c.id;
           const color = expiryColor(c.expiresAt);
           const config = c.configuracion as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
-          const extras = (config.extras ?? {}) as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+          const extras = (config.extras ?? {}) as unknown as Record<string, { nombre: string; marca: string; precio: number | null; moneda: string; imagenUrl?: string | null }>;
+          const ramSticks = getRamSticks(c.configuracion);
           const total = STEP_ORDER.reduce((sum, k) => {
             const p = config[k];
             if (!p) return sum;
+            return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
+          }, 0) + ramSticks.reduce((sum, p) => {
             return sum + toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta);
           }, 0) + EXTRA_ORDER.reduce((sum, k) => {
             const p = extras[k];
@@ -488,8 +514,8 @@ export default function MisCotizacionesPage() {
                           const p = config[k];
                           const meta = STEP_META[k];
                           return (
+                            <Fragment key={k}>
                             <tr
-                              key={k}
                               className="border-b"
                               style={{
                                 borderColor: "var(--store-outline-variant)",
@@ -529,6 +555,57 @@ export default function MisCotizacionesPage() {
                                 </span>
                               </td>
                             </tr>
+                            {k === "ram" &&
+                              ramSticks.map((r, ri) => (
+                                <tr
+                                  key={`ramExtra-${ri}`}
+                                  className="border-b"
+                                  style={{
+                                    borderColor: "var(--store-outline-variant)",
+                                    backgroundColor: "var(--store-surface-container-low)",
+                                  }}
+                                >
+                                  <td className="px-3 py-2.5">
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className="material-symbols-outlined text-base"
+                                        style={{ color: STEP_META.ram.color }}
+                                      >
+                                        {STEP_META.ram.icon}
+                                      </span>
+                                      <span
+                                        className="text-xs font-semibold"
+                                        style={{ color: "var(--store-on-surface)" }}
+                                      >
+                                        Memoria RAM (extra)
+                                        <span
+                                          className="ml-1 font-normal"
+                                          style={{ color: "var(--store-on-surface-variant)" }}
+                                        >
+                                          — Ranura {ri + 2}
+                                        </span>
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td
+                                    className="hidden px-3 py-2.5 md:table-cell"
+                                    style={{ color: "var(--store-on-surface-variant)" }}
+                                  >
+                                    <span className="text-xs font-mono">
+                                      {r.marca} — {r.nombre}
+                                    </span>
+                                  </td>
+                                  <td
+                                    className="px-3 py-2.5 text-right font-bold"
+                                    style={{ color: "var(--store-on-surface)" }}
+                                  >
+                                    <span className="font-mono text-xs">
+                                      {displayPrice(r.precio, r.moneda, currency, rate.venta)}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </Fragment>
                           );
                         })}
                         {EXTRA_ORDER.filter((k) => extras[k]).map((k, i) => {
@@ -632,10 +709,10 @@ export default function MisCotizacionesPage() {
                     </button>
                     <button
                       onClick={() => handleDelete(c.id, c.numero)}
-                      className="flex items-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-semibold transition-all hover:bg-red-50 ml-auto"
+                      className="flex items-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-semibold transition-all hover:bg-[var(--store-error-container)] ml-auto"
                       style={{
-                        borderColor: "#fca5a5",
-                        color: "#ef4444",
+                        borderColor: "var(--store-error)",
+                        color: "var(--store-error)",
                       }}
                     >
                       <span className="material-symbols-outlined text-sm">delete</span>

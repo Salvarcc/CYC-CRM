@@ -3,6 +3,51 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 /* ------------------------------------------------------------------ */
+/*  PATCH — Marcar una cotización como Cumplida / Pendiente             */
+/* ------------------------------------------------------------------ */
+
+interface PatchPayload {
+  rawId?: string;
+  id?: string;
+  cumplida?: boolean;
+}
+
+export async function PATCH(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+  }
+
+  let body: PatchPayload;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Payload inválido." }, { status: 400 });
+  }
+
+  const id = body.rawId ?? body.id;
+  if (!id) {
+    return NextResponse.json({ error: "Falta el id de la cotización." }, { status: 400 });
+  }
+
+  const existente = await prisma.cotizacion.findUnique({ where: { id } });
+  if (!existente) {
+    return NextResponse.json({ error: "Cotización no encontrada." }, { status: 404 });
+  }
+
+  const cumplida = body.cumplida === true || body.cumplida === undefined
+    ? !existente.cumplida
+    : body.cumplida;
+
+  const actualizada = await prisma.cotizacion.update({
+    where: { id },
+    data: { cumplida },
+  });
+
+  return NextResponse.json({ ok: true, cumplida: actualizada.cumplida });
+}
+
+/* ------------------------------------------------------------------ */
 /*  GET — Listar todas las cotizaciones (admin)                         */
 /* ------------------------------------------------------------------ */
 
@@ -24,7 +69,9 @@ export async function GET() {
 
   const result = cotizaciones.map((c) => {
     const isExpired = new Date(c.expiresAt) < now;
-    const status = isExpired ? "Completada" : "Pendiente";
+    const status = c.cumplida ? "Cumplida" : isExpired ? "Expirada" : "Pendiente";
+    const statusColor =
+      status === "Cumplida" ? "success" : status === "Expirada" ? "error" : "warning";
 
     const components = c.items
       .map((i) => i.nombre)
@@ -41,11 +88,12 @@ export async function GET() {
       components,
       total: `${c.moneda === "PEN" ? "S/." : "$"}${Number(c.totalPrice).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
       status,
-      statusColor: status === "Pendiente" ? "warning" : "blue",
+      statusColor,
       rawId: c.id,
       expiresAt: c.expiresAt,
       totalPrice: Number(c.totalPrice),
       moneda: c.moneda,
+      cumplida: c.cumplida,
     };
   });
 

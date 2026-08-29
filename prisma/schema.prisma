@@ -243,6 +243,7 @@ model Cotizacion {
   configuracion    Json     // snapshot completo del configurador (selections + attrs)
   createdAt        DateTime @default(now())
   expiresAt        DateTime // createdAt + 3 días
+  cumplida         Boolean  @default(false) // marcado por admin cuando la cotización fue atendida/entregada
 
   items CotizacionItem[]
 

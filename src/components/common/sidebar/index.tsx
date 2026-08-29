@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import type { Key } from 'react-aria-components';
 import { NAV_DATA } from './data';
 import { CloseIcon, SidebarExpandedIcon, ThreeDots } from './icon';
+import { SidebarFooter } from './sidebar-footer';
 import NavItem from './nav-item';
 import { findActiveGroupKey } from './utils';
 
@@ -132,6 +133,9 @@ export default function Sidebar({
                     ))}
                 </CollapsibleGroup>
             </nav>
+
+            {/* Footer: account + theme toggle, bottom-left */}
+            <SidebarFooter isSidebarOpen={isSidebarOpen} />
         </div>
     );
 }

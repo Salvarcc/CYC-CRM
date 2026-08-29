@@ -6,7 +6,11 @@ import type { CartItem } from "@/hooks/use-cart";
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface ConfigProduct {
+/* ------------------------------------------------------------------ */
+/*  ConfigProduct (exportado para reuso)                               */
+/* ------------------------------------------------------------------ */
+
+export interface ConfigProduct {
   id: string;
   nombre: string;
   marca: string;
@@ -21,6 +25,7 @@ interface ConfigProduct {
 interface ConfigData {
   selections: Record<string, ConfigProduct>;
   extras?: Record<string, ConfigProduct>;
+  ramExtra?: (ConfigProduct | null)[];
   totalConsumption: number;
   totalPrice: number;
   timestamp: string;
@@ -266,6 +271,18 @@ export async function generateQuotationPDF(
       `${product.marca} — ${product.nombre}`,
       formatPrice(toPreferred(product.precio, product.moneda, currency, saleRate), currency),
     ]);
+    // Group extra RAM modules right after the main RAM row
+    if (key === "ram" && data.ramExtra) {
+      for (const extra of data.ramExtra) {
+        if (!extra) continue;
+        body.push([
+          String(body.length + 1),
+          STEP_META.ram.label,
+          `${extra.marca} — ${extra.nombre}`,
+          formatPrice(toPreferred(extra.precio, extra.moneda, currency, saleRate), currency),
+        ]);
+      }
+    }
   }
 
   let rowNum = body.length + 1;
@@ -312,7 +329,7 @@ export async function generateQuotationPDF(
     },
     didParseCell(tableData) {
       if (tableData.section === "body" && tableData.column.index === 3) {
-        tableData.cell.styles.fontColor = [...CYM_RED_RGB];
+        tableData.cell.styles.textColor = [...CYM_RED_RGB];
       }
     },
   });
@@ -338,6 +355,9 @@ export async function generateQuotationPDF(
   /* ── Totals ───────────────────────────────────────────────────── */
   const subtotal = STEP_ORDER.reduce((sum, key) => {
     const p = data.selections[key];
+    if (!p) return sum;
+    return sum + toPreferred(p.precio, p.moneda, currency, saleRate);
+  }, 0) + (data.ramExtra ?? []).reduce((sum, p) => {
     if (!p) return sum;
     return sum + toPreferred(p.precio, p.moneda, currency, saleRate);
   }, 0) + (data.extras ? EXTRA_ORDER.reduce((sum, key) => {
@@ -438,7 +458,7 @@ export async function generateCartPDF(
     },
     didParseCell(tableData) {
       if (tableData.section === "body" && tableData.column.index === 5) {
-        tableData.cell.styles.fontColor = [...CYM_RED_RGB];
+        tableData.cell.styles.textColor = [...CYM_RED_RGB];
       }
     },
   });

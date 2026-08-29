@@ -68,6 +68,97 @@
   --store-whatsapp: #25d366;
   --store-info: #00a8e8;
   --store-success: #065f46;
+
+  /* ── Status pill tokens (adapt in dark mode) ────────────── */
+  --store-badge-green-bg: #e8f5e9;
+  --store-badge-green-fg: #2e7d32;
+  --store-badge-blue-bg: #e0f2fe;
+  --store-badge-blue-fg: #0369a1;
+  --store-badge-amber-bg: #fef3c7;
+  --store-badge-amber-fg: #92400e;
+  --store-badge-error-border: #fca5a5;
+}
+
+/* ============================================================
+   Material Design 3 (Dark) — activated when next-themes adds
+   data-theme="dark" to <html>. The .store-root is a descendant,
+   so these override the light tokens via higher specificity.
+   ============================================================ */
+[data-theme="dark"] .store-root {
+  /* ── Primary ─────────────────────────────────────────────── */
+  --store-primary: #ffb4ac;
+  --store-on-primary: #690006;
+  --store-primary-container: #93000d;
+  --store-on-primary-container: #ffdad6;
+  --store-primary-fixed: #ffdad6;
+  --store-primary-fixed-dim: #ffb4ac;
+  --store-on-primary-fixed: #410002;
+  --store-on-primary-fixed-variant: #690006;
+  --store-inverse-primary: #bb171c;
+  --store-surface-tint: #ffb4ac;
+
+  /* ── Secondary ───────────────────────────────────────────── */
+  --store-secondary: #83cfff;
+  --store-on-secondary: #003352;
+  --store-secondary-container: #004c6b;
+  --store-on-secondary-container: #c6e7ff;
+  --store-secondary-fixed: #c6e7ff;
+  --store-secondary-fixed-dim: #83cfff;
+  --store-on-secondary-fixed: #001e2d;
+  --store-on-secondary-fixed-variant: #004c6b;
+
+  /* ── Tertiary ────────────────────────────────────────────── */
+  --store-tertiary: #bcc7de;
+  --store-on-tertiary: #263141;
+  --store-tertiary-container: #3c475a;
+  --store-on-tertiary-container: #d8e3fb;
+  --store-tertiary-fixed: #d8e3fb;
+  --store-tertiary-fixed-dim: #bcc7de;
+  --store-on-tertiary-fixed: #111c2d;
+  --store-on-tertiary-fixed-variant: #3c475a;
+
+  /* ── Error ───────────────────────────────────────────────── */
+  --store-error: #ffb4ab;
+  --store-on-error: #690005;
+  --store-error-container: #93000a;
+  --store-on-error-container: #ffdad6;
+
+  /* ── Surface ─────────────────────────────────────────────── */
+  --store-surface: #131316;
+  --store-on-surface: #e4e2e6;
+  --store-on-surface-variant: #cfc4c3;
+  --store-surface-variant: #4f4443;
+  --store-surface-dim: #131316;
+  --store-surface-bright: #39393b;
+  --store-inverse-surface: #e4e2e6;
+  --store-inverse-on-surface: #313033;
+  --store-surface-container-lowest: #0e0e10;
+  --store-surface-container-low: #1b1b1e;
+  --store-surface-container: #1f1f22;
+  --store-surface-container-high: #29292c;
+  --store-surface-container-highest: #343437;
+
+  /* ── Outline ─────────────────────────────────────────────── */
+  --store-outline: #988c8b;
+  --store-outline-variant: #4f4443;
+
+  /* ── Background ──────────────────────────────────────────── */
+  --store-background: #131316;
+  --store-on-background: #e4e2e6;
+
+  /* ── Extra ───────────────────────────────────────────────── */
+  --store-whatsapp: #25d366;
+  --store-info: #7adaff;
+  --store-success: #4ade80;
+
+  /* ── Status pill tokens (dark) ───────────────────────────── */
+  --store-badge-green-bg: #14532d33;
+  --store-badge-green-fg: #4ade80;
+  --store-badge-blue-bg: #0c4a6e33;
+  --store-badge-blue-fg: #38bdf8;
+  --store-badge-amber-bg: #92400e33;
+  --store-badge-amber-fg: #fbbf24;
+  --store-badge-error-border: #fca5a5;
 }
 
 /* ── Scoped utilities ──────────────────────────────────────── */
@@ -90,6 +181,21 @@
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--store-on-surface-variant, #5b403d);
 }
+
+/* Dark scrollbar fallbacks (pseudo-elements don't inherit .store-root vars) */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #1f1f22;
+  border-radius: 8px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background-color: #988c8b;
+  border-radius: 8px;
+  border: 2px solid #1f1f22;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background-color: #cfc4c3;
+}
+
 .store-root {
   overflow: auto;
   height: 100%;
@@ -133,6 +239,20 @@
   border-color: var(--store-info);
   box-shadow: 0 0 0 2px rgba(0, 168, 232, 0.2);
   outline: none;
+}
+
+/* Dark input + status badges */
+[data-theme="dark"] .store-root .tech-input {
+  background-color: var(--store-surface-container-low);
+  border-color: var(--store-outline-variant);
+}
+[data-theme="dark"] .store-root .badge-success {
+  background-color: #14532d33;
+  color: #4ade80;
+}
+[data-theme="dark"] .store-root .badge-tech {
+  background-color: #0c4a6e33;
+  color: #38bdf8;
 }
 
 /* ── Status badges (Stitch pattern) ────────────────────────── */

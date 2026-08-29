@@ -26,6 +26,7 @@ interface ConfigProduct {
 interface ConfigData {
   selections: Record<string, ConfigProduct>;
   extras?: Record<string, ConfigProduct>;
+  ramExtra?: (ConfigProduct | null)[];
   totalConsumption: number;
   totalPrice: number;
   timestamp: string;
@@ -101,6 +102,12 @@ function buildSummaryLines(
     const meta = STEP_META[key];
     lines.push(`${meta.label}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`);
   }
+  if (data.ramExtra) {
+    for (const p of data.ramExtra) {
+      if (!p) continue;
+      lines.push(`Memoria RAM (extra): ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`);
+    }
+  }
   if (data.extras) {
     for (const key of EXTRA_ORDER) {
       const p = data.extras[key];
@@ -161,14 +168,32 @@ export default function CotizacionPage() {
         toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta)
       );
     }, 0);
-    return base + extrasTotal;
+    const ramExtraTotal = (data.ramExtra ?? []).reduce((sum, p) => {
+      if (!p) return sum;
+      return (
+        sum +
+        toPreferredCurrency(p.precio ?? 0, p.moneda ?? "USD", currency, rate.venta)
+      );
+    }, 0);
+    return base + extrasTotal + ramExtraTotal;
   }, [data, currency, rate.venta]);
+  const ramExtraItems = (data?.ramExtra ?? [])
+    .map((p: ConfigProduct | null, i: number) => p && { key: `ramExtra-${i}`, ...STEP_META.ram, product: p })
+    .filter(
+      (x): x is { key: string; label: string; icon: string; color: string; product: ConfigProduct } =>
+        !!x,
+    );
   const components = data
-    ? STEP_ORDER.filter((k) => data.selections[k]).map((k) => ({
-        key: k,
-        ...STEP_META[k],
-        product: data.selections[k],
-      }))
+    ? STEP_ORDER.filter((k) => data.selections[k]).reduce<
+        { key: string; label: string; icon: string; color: string; product: ConfigProduct }[]
+      >((acc, k) => {
+        acc.push({ key: k, ...STEP_META[k], product: data.selections[k] });
+        if (k === "ram") {
+          // Group all extra RAM modules right after the main RAM row
+          acc.push(...ramExtraItems);
+        }
+        return acc;
+      }, [])
     : [];
 
   const extras = data?.extras
@@ -247,6 +272,7 @@ export default function CotizacionPage() {
         body: JSON.stringify({
           selections: data.selections,
           extras: data.extras,
+          ramExtra: data.ramExtra,
           totalConsumption: data.totalConsumption,
           totalPrice,
           moneda: currency,
@@ -461,17 +487,6 @@ export default function CotizacionPage() {
                               >
                                 {c.label}
                               </p>
-                              {EXTRA_ORDER.includes(c.key as (typeof EXTRA_ORDER)[number]) && (
-                                <span
-                                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                                  style={{
-                                    backgroundColor: "var(--store-secondary-container)",
-                                    color: "var(--store-on-secondary-container)",
-                                  }}
-                                >
-                                  Opcional
-                                </span>
-                              )}
                             </div>
                             <p
                               className="text-xs md:hidden"
@@ -573,8 +588,8 @@ export default function CotizacionPage() {
                 <span
                   className="mt-1 inline-block rounded px-2 py-1 text-xs font-bold"
                   style={{
-                    backgroundColor: "#E8F5E9",
-                    color: "#2E7D32",
+                    backgroundColor: "var(--store-badge-green-bg)",
+                    color: "var(--store-badge-green-fg)",
                   }}
                 >
                   En Stock
@@ -583,7 +598,10 @@ export default function CotizacionPage() {
             </div>
             <div
               className="flex items-center gap-2 rounded p-2 text-xs"
-              style={{ backgroundColor: "#e0f2fe", color: "#0369a1" }}
+              style={{
+                backgroundColor: "var(--store-badge-blue-bg)",
+                color: "var(--store-badge-blue-fg)",
+              }}
             >
               <span className="material-symbols-outlined text-sm">info</span>
               Compatible para ensamblaje inmediato.

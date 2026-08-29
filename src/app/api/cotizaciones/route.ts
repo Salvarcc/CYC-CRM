@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /* ------------------------------------------------------------------ */
@@ -21,6 +22,7 @@ interface ConfigProduct {
 interface SavePayload {
   selections: Record<string, ConfigProduct>;
   extras?: Record<string, ConfigProduct>;
+  ramExtra?: (ConfigProduct | null)[];
   totalConsumption: number;
   totalPrice: number;
   moneda: string;
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Payload inválido." }, { status: 400 });
   }
 
-  const { selections, extras, totalConsumption, totalPrice, moneda } = body;
+  const { selections, extras, ramExtra, totalConsumption, totalPrice, moneda } = body;
 
   if (!selections || typeof selections !== "object") {
     return NextResponse.json({ error: "selections es requerido." }, { status: 400 });
@@ -106,6 +108,21 @@ export async function POST(request: Request) {
       categoryKey: key,
     }));
 
+  /* Build items for RAM sticks extra (según ramSlots) */
+  const ramExtraProducts = (Array.isArray(ramExtra) ? ramExtra : [])
+    .filter((p): p is ConfigProduct => Boolean(p && typeof p === "object" && p.id));
+  const ramExtraItems = ramExtraProducts.map((p) => ({
+      stepKey: "extra-ram",
+      productId: p.id,
+      nombre: p.nombre,
+      marca: p.marca,
+      precio: p.precio ?? 0,
+      moneda: p.moneda ?? "USD",
+      imagenUrl: p.imagenUrl,
+      category: p.category ?? "Memoria RAM",
+      categoryKey: p.categoryKey ?? "ram",
+    }));
+
   if (items.length === 0) {
     return NextResponse.json({ error: "Debes seleccionar al menos un componente." }, { status: 400 });
   }
@@ -124,11 +141,12 @@ export async function POST(request: Request) {
       configuracion: {
         ...selections,
         ...(extraItems.length > 0 ? { extras: extras as Record<string, ConfigProduct> } : {}),
-      } as unknown as Record<string, unknown>,
+        ...(ramExtraProducts.length > 0 ? { ramExtra: ramExtraProducts } : {}),
+      } as unknown as Prisma.InputJsonValue,
       createdAt: now,
       expiresAt,
       items: {
-        create: [...items, ...extraItems],
+        create: [...items, ...extraItems, ...ramExtraItems],
       },
     },
     include: { items: true },

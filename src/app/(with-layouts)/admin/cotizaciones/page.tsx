@@ -17,9 +17,12 @@ import {
   TableRoot,
   TableRow,
 } from "@/components/tailgrids/core/table";
-import { MenuDotsIcon } from "@/utils/icon";
+import type { Currency } from "@/utils/currency";
+import { convertPrice, fetchLatestRate, formatPrice } from "@/utils/currency";
 import { useEffect, useState } from "react";
 import { DownloadIcon, FilterIcon } from "./icons";
+
+const CURRENCY_KEY = "cym-currency";
 
 type BadgeColor =
   | "gray"
@@ -44,15 +47,35 @@ interface Quote {
   total: string;
   status: string;
   statusColor: BadgeColor;
+  rawId: string;
+  totalPrice: number;
+  moneda: string;
+  cumplida: boolean;
 }
 
-const STATUS_TABS = ["Todas", "Pendientes", "Aprobadas", "Rechazadas", "Completadas"] as const;
+const STATUS_TABS = ["Todas", "Pendientes", "Expiradas", "Cumplidas"] as const;
 
 export default function CotizacionesPage() {
   const [activeTab, setActiveTab] = useState<string>("Todas");
   const [searchQuery, setSearchQuery] = useState("");
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [currency, setCurrency] = useState<Currency>("USD");
+  const [rate, setRate] = useState<number>(3.75);
+
+  /* hydrate currency preference from localStorage (shared with store/dashboard) */
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CURRENCY_KEY);
+      if (saved === "USD" || saved === "PEN") setCurrency(saved);
+    } catch {}
+  }, []);
+
+  /* fetch latest exchange rate */
+  useEffect(() => {
+    fetchLatestRate().then((r) => setRate(r.venta));
+  }, []);
 
   useEffect(() => {
     fetch("/api/admin/cotizaciones")
@@ -63,6 +86,16 @@ export default function CotizacionesPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  function toggleCurrency() {
+    setCurrency((prev) => {
+      const next: Currency = prev === "USD" ? "PEN" : "USD";
+      try {
+        localStorage.setItem(CURRENCY_KEY, next);
+      } catch {}
+      return next;
+    });
+  }
 
   const filteredQuotes = quotes.filter((quote) => {
     const matchesTab =
@@ -76,15 +109,31 @@ export default function CotizacionesPage() {
   const tabCounts = {
     Todas: quotes.length,
     Pendientes: quotes.filter((q) => q.status === "Pendiente").length,
-    Aprobadas: quotes.filter((q) => q.status === "Aprobada").length,
-    Rechazadas: quotes.filter((q) => q.status === "Rechazada").length,
-    Completadas: quotes.filter((q) => q.status === "Completada").length,
+    Expiradas: quotes.filter((q) => q.status === "Expirada").length,
+    Cumplidas: quotes.filter((q) => q.status === "Cumplida").length,
   };
 
-  const totalValue = quotes.reduce((sum, q) => {
-    const num = parseFloat(q.total.replace(/[$,S/.]/g, ""));
-    return sum + (isNaN(num) ? 0 : num);
-  }, 0);
+  function displayTotal(q: Quote): string {
+    const src = (q.moneda === "PEN" ? "PEN" : "USD") as Currency;
+    const converted = convertPrice(q.totalPrice, src, currency, rate);
+    return formatPrice(converted, currency);
+  }
+
+  async function handleToggleCumplida(q: Quote) {
+    const next = !q.cumplida;
+    const label = next ? "Cumplida" : "Pendiente";
+    try {
+      const res = await fetch("/api/admin/cotizaciones", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawId: q.rawId, cumplida: next }),
+      });
+      if (!res.ok) return;
+      setQuotes((prev) =>
+        prev.map((item) => (item.rawId === q.rawId ? { ...item, cumplida: next, status: label } : item)),
+      );
+    } catch {}
+  }
 
   return (
     <div className="mt-6 space-y-5">
@@ -144,15 +193,15 @@ export default function CotizacionesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm leading-5 font-medium text-text-tertiary">
-                    Completadas
+                    Expiradas
                   </p>
-                  <p className="mt-1 text-2xl leading-8 font-semibold text-green-600">
-                    {loading ? "—" : tabCounts.Completadas}
+                  <p className="mt-1 text-2xl leading-8 font-semibold text-red-600">
+                    {loading ? "—" : tabCounts.Expiradas}
                   </p>
                 </div>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-badge-success-background">
-                  <span className="text-badge-success-icon-color material-symbols-outlined text-xl">
-                    check_circle
+                <div className="flex size-10 items-center justify-center rounded-lg bg-badge-error-background">
+                  <span className="text-badge-error-icon-color material-symbols-outlined text-xl">
+                    schedule
                   </span>
                 </div>
               </div>
@@ -163,15 +212,15 @@ export default function CotizacionesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm leading-5 font-medium text-text-tertiary">
-                    Valor Total
+                    Cumplidas
                   </p>
-                  <p className="mt-1 text-2xl leading-8 font-semibold text-text-primary">
-                    {loading ? "—" : `$${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+                  <p className="mt-1 text-2xl leading-8 font-semibold text-green-600">
+                    {loading ? "—" : tabCounts.Cumplidas}
                   </p>
                 </div>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-badge-violet-background">
-                  <span className="text-badge-violet-icon-color material-symbols-outlined text-xl">
-                    attach_money
+                <div className="flex size-10 items-center justify-center rounded-lg bg-badge-success-background">
+                  <span className="text-badge-success-icon-color material-symbols-outlined text-xl">
+                    check_circle
                   </span>
                 </div>
               </div>
@@ -195,6 +244,14 @@ export default function CotizacionesPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </InputGroup>
+              <Button
+                appearance="outline"
+                className="h-8 gap-1 px-2.5 text-xs font-medium text-icon-tertiary"
+                onClick={toggleCurrency}
+              >
+                <span className="material-symbols-outlined text-base">currency_exchange</span>
+                {currency === "USD" ? "Soles" : "Dólares"}
+              </Button>
               <Button appearance="outline" className="h-8 w-8 p-1.5 text-icon-tertiary">
                 <FilterIcon />
               </Button>
@@ -248,13 +305,13 @@ export default function CotizacionesPage() {
                     Componentes
                   </TableHead>
                   <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
-                    Total
+                    Total ({currency})
                   </TableHead>
                   <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
                     Estado
                   </TableHead>
                   <TableHead className="px-6 py-2.5 text-xs leading-4 font-semibold text-text-secondary">
-                    <div className="flex items-center justify-center">Acción</div>
+                    Acción
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -273,7 +330,7 @@ export default function CotizacionesPage() {
                   </TableRow>
                 ) : (
                   filteredQuotes.map((quote) => (
-                    <TableRow key={quote.id} className="[&_td]:border-none">
+                    <TableRow key={quote.rawId} className="[&_td]:border-none">
                       <TableCell className="px-6 py-3.5 text-sm leading-5 font-medium text-text-primary">
                         {quote.id}
                       </TableCell>
@@ -287,7 +344,7 @@ export default function CotizacionesPage() {
                         {quote.components}
                       </TableCell>
                       <TableCell className="px-6 py-3.5 text-sm leading-5 font-medium text-text-primary">
-                        {quote.total}
+                        {displayTotal(quote)}
                       </TableCell>
                       <TableCell className="px-6 py-3.5">
                         <Badge color={quote.statusColor} size="sm">
@@ -297,11 +354,12 @@ export default function CotizacionesPage() {
                       <TableCell className="px-6 py-3.5">
                         <div className="flex items-center justify-center">
                           <Button
-                            variant="ghost"
+                            appearance="outline"
                             size="xs"
-                            className="h-7.5 w-8 rounded-lg border-none p-1.5 text-icon-secondary shadow-xs"
+                            className="gap-1 text-xs font-medium"
+                            onClick={() => handleToggleCumplida(quote)}
                           >
-                            <MenuDotsIcon />
+                            {quote.cumplida ? "Marcar Pendiente" : "Marcar Cumplida"}
                           </Button>
                         </div>
                       </TableCell>
