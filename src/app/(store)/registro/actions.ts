@@ -1,9 +1,7 @@
 "use server";
 
-import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 
-import { signIn } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 export interface RegistroState {
@@ -60,34 +58,6 @@ export async function registrarCliente(
       return { error: "Ya existe una cuenta registrada con este correo." };
     }
     return { error: "Ocurrió un error al crear tu cuenta. Inténtalo de nuevo." };
-  }
-
-  try {
-    const resultado = await signIn("credentials", {
-      correo,
-      contrasena,
-      redirect: false,
-    });
-
-    if (
-      resultado &&
-      typeof resultado === "object" &&
-      "error" in resultado &&
-      resultado.error
-    ) {
-      return {
-        error:
-          "Tu cuenta fue creada pero no pudimos iniciar sesión automáticamente. Inicia sesión manualmente.",
-      };
-    }
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return {
-        error:
-          "Tu cuenta fue creada pero no pudimos iniciar sesión automáticamente. Inicia sesión manualmente.",
-      };
-    }
-    throw error;
   }
 
   return { ok: true };

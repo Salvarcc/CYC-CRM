@@ -17,6 +17,7 @@ export interface CartItem {
   moneda: string;
   imagenUrl: string | null;
   category: string;
+  categoryKey: string;
   qty: number;
 }
 
@@ -40,7 +41,7 @@ const CartContext = createContext<CartCtx>({
   totalPrice: 0,
 });
 
-const STORAGE_KEY = "cym-cart";
+const STORAGE_KEY = "cym-cart-v2";
 
 function loadCart(): CartItem[] {
   if (typeof window === "undefined") return [];
@@ -48,7 +49,16 @@ function loadCart(): CartItem[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (i): i is CartItem =>
+        !!i &&
+        typeof i.id === "string" &&
+        typeof i.categoryKey === "string" &&
+        typeof i.nombre === "string" &&
+        typeof i.precio === "number" &&
+        typeof i.qty === "number",
+    );
   } catch {
     return [];
   }

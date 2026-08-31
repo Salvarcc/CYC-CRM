@@ -221,6 +221,13 @@ function StoreShell({ children }: { children: React.ReactNode }) {
                 {item}
               </a>
             ))}
+            <Link
+              href="/admin"
+              className="text-sm font-semibold transition-all hover:underline"
+              style={{ color: "var(--store-primary)" }}
+            >
+              Área de administración
+            </Link>
           </div>
         </div>
       </footer>

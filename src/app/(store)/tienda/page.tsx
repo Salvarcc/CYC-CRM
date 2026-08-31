@@ -469,6 +469,7 @@ export default function TiendaPage() {
                             moneda: product.moneda,
                             imagenUrl: product.imagenUrl,
                             category: product.category,
+                            categoryKey: product.categoryKey,
                           });
                           toast.success(`${product.nombre} agregado al carrito`);
                         }}

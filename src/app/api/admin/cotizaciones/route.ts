@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { getAdminSession } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 
 /* ------------------------------------------------------------------ */
@@ -13,8 +13,8 @@ interface PatchPayload {
 }
 
 export async function PATCH(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const session = await getAdminSession();
+  if (!session) {
     return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
   }
 
@@ -52,8 +52,8 @@ export async function PATCH(request: Request) {
 /* ------------------------------------------------------------------ */
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const session = await getAdminSession();
+  if (!session) {
     return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
   }
 

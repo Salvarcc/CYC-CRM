@@ -42,16 +42,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.nombre = user.nombre;
-        token.telefono = user.telefono;
+        if (user.id) token.id = user.id;
+        if (user.nombre) token.nombre = user.nombre;
+        if (user.telefono) token.telefono = user.telefono;
       }
       return token;
     },
     session({ session, token }) {
-      session.user.id = token.id;
-      session.user.nombre = token.nombre;
-      session.user.telefono = token.telefono;
+      if (token.id) session.user.id = token.id;
+      if (token.nombre) session.user.nombre = token.nombre;
+      if (token.telefono) session.user.telefono = token.telefono;
       return session;
     },
   },

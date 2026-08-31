@@ -54,7 +54,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Socket</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Socket <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.socket || ""}
@@ -67,7 +67,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tipoMemoria || ""}
@@ -82,7 +82,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">TDP (Watts)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">TDP (Watts) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tdp || ""}
@@ -130,7 +130,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Socket</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Socket <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.socket || ""}
@@ -143,7 +143,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tipoMemoria || ""}
@@ -158,7 +158,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.factorForma || ""}
@@ -171,7 +171,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">RAM Slots</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">RAM Slots <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.ramSlots || ""}
@@ -185,7 +185,7 @@ export default function CategoryAttributeForm({
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-text-primary">Max Memoria RAM (GB)</label>
+            <label className="mb-1 block text-sm font-medium text-text-primary">Max Memoria RAM (GB) <span className="text-red-500">*</span></label>
             <select
               className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary md:w-1/2"
               value={form.maxMemoriaGB || ""}
@@ -205,7 +205,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tipoMemoria || ""}
@@ -218,7 +218,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.factorForma || ""}
@@ -232,7 +232,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.capacidadGB || ""}
@@ -245,7 +245,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Frecuencia (MHz)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Frecuencia (MHz) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.frecuenciaMHz || ""}
@@ -266,7 +266,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">VRAM (GB)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">VRAM (GB) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.vramGB || ""}
@@ -279,7 +279,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">PSU Rec. (Watts)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">PSU Rec. (Watts) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.consumoRecomendadoFuenteWatts || ""}
@@ -293,7 +293,7 @@ export default function CategoryAttributeForm({
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-text-primary">Largo (mm)</label>
+            <label className="mb-1 block text-sm font-medium text-text-primary">Largo (mm) <span className="text-red-500">*</span></label>
             <select
               className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary md:w-1/2"
               value={form.largoMm || ""}
@@ -313,7 +313,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-text-primary">
-              Sockets Soportados
+              Sockets Soportados <span className="text-red-500">*</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {SOCKET_OPTIONS.map((s) => {
@@ -347,7 +347,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">TDP Soportado (W)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">TDP Soportado (W) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tdpSoportadoWatts || ""}
@@ -360,7 +360,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tipoRefrigeracion || ""}
@@ -373,7 +373,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">N° Ventiladores</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">N° Ventiladores <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.numeroVentiladores || ""}
@@ -394,7 +394,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-text-primary">
-              Factores de Forma Soportados
+              Factores de Forma Soportados <span className="text-red-500">*</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {FACTOR_FORMA_OPTIONS.map((ff) => {
@@ -428,7 +428,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">GPU Máx (mm)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">GPU Máx (mm) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.largoMaxGpuMm || ""}
@@ -441,7 +441,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Max Fans / Radiador</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Max Fans / Radiador <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.soportaFanCoolerVentiladores || ""}
@@ -467,7 +467,7 @@ export default function CategoryAttributeForm({
               Incluye Fuente de Poder
             </label>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Potencia Fuente (W)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Potencia Fuente (W) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.potenciaFuenteWatts || ""}
@@ -488,7 +488,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Potencia (W)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Potencia (W) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.potenciaWatts || ""}
@@ -501,7 +501,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Certificación 80+</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Certificación 80+ <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.certificacion80Plus || ""}
@@ -516,7 +516,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.factorForma || ""}
@@ -548,7 +548,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.capacidadGB || ""}
@@ -561,7 +561,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Formato</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Formato <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.formato || ""}
@@ -575,7 +575,7 @@ export default function CategoryAttributeForm({
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-text-primary">Interfaz</label>
+            <label className="mb-1 block text-sm font-medium text-text-primary">Interfaz <span className="text-red-500">*</span></label>
             <select
               className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary md:w-1/2"
               value={form.interfaz || ""}
@@ -589,7 +589,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Lectura (MB/s)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Lectura (MB/s) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.lecturaMBs || ""}
@@ -602,7 +602,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Escritura (MB/s)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Escritura (MB/s) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.escrituraMBs || ""}
@@ -623,7 +623,7 @@ export default function CategoryAttributeForm({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Tamaño</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Tamaño <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tamano || ""}
@@ -636,7 +636,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Resolución</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Resolución <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.resolucion || ""}
@@ -651,7 +651,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Panel</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Panel <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tipoPanel || ""}
@@ -664,7 +664,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Relación de Aspecto</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Relación de Aspecto <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.ratioAspecto || ""}
@@ -679,7 +679,7 @@ export default function CategoryAttributeForm({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Tiempo Respuesta (ms)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Tiempo Respuesta (ms) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tiempoRespuestaMs || ""}
@@ -692,7 +692,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text-primary">Tasa de Refresco (Hz)</label>
+              <label className="mb-1 block text-sm font-medium text-text-primary">Tasa de Refresco (Hz) <span className="text-red-500">*</span></label>
               <select
                 className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary"
                 value={form.tasaRefrescoHz || ""}
@@ -706,7 +706,7 @@ export default function CategoryAttributeForm({
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-text-primary">Puertos</label>
+            <label className="mb-1 block text-sm font-medium text-text-primary">Puertos <span className="text-red-500">*</span></label>
             <div className="flex flex-wrap gap-2">
               {MONITOR_PUERTOS_OPTIONS.map((p) => {
                 const selected = formValueToArray(form.puertos).includes(p);

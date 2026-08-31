@@ -13,7 +13,7 @@ export async function iniciarSesion(
   _prevState: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
-  const correo = String(formData.get("correo") ?? "").trim();
+  const correo = String(formData.get("correo") ?? "").trim().toLowerCase();
   const contrasena = String(formData.get("contrasena") ?? "");
 
   if (!correo || !contrasena) {

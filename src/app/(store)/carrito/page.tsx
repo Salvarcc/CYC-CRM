@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { useCart } from "@/hooks/use-cart";
 import { useCurrency } from "@/hooks/use-currency";
 import { convertPrice, formatPrice, type Currency } from "@/utils/currency";
@@ -12,7 +15,10 @@ const PLACEHOLDER_IMG =
 export default function CarritoPage() {
   const { items, updateQuantity, removeItem, clearCart } = useCart();
   const { currency, rate } = useCurrency();
+  const { status: authStatus } = useSession();
+  const router = useRouter();
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   function itemPrice(price: number, moneda: string): number {
     return convertPrice(price, (moneda === "PEN" ? "PEN" : "USD") as Currency, currency, rate.venta);
@@ -34,6 +40,46 @@ export default function CarritoPage() {
       console.error("Error generating cart PDF:", err);
     } finally {
       setPdfLoading(false);
+    }
+  }
+
+  /* ── Checkout (Stripe) ───────────────────────────────────────── */
+
+  async function handleCheckout() {
+    if (items.length === 0) return;
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((i) => ({
+            productId: i.id,
+            categoryKey: i.categoryKey,
+            qty: i.qty,
+          })),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo iniciar el pago.");
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast.error("Error de conexión. Inténtalo de nuevo.");
+    } finally {
+      setCheckoutLoading(false);
     }
   }
 
@@ -263,7 +309,9 @@ export default function CarritoPage() {
             </div>
 
             <button
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-all hover:scale-95"
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-all hover:scale-95 disabled:pointer-events-none disabled:opacity-60"
               style={{
                 backgroundColor: "var(--store-primary)",
                 color: "var(--store-on-primary)",
@@ -272,7 +320,7 @@ export default function CarritoPage() {
               <span className="material-symbols-outlined text-base">
                 credit_card
               </span>
-              Proceder al Pago
+              {checkoutLoading ? "Creando sesión de pago..." : "Proceder al Pago"}
             </button>
 
             <button

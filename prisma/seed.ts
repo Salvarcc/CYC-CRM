@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -292,6 +293,39 @@ async function main() {
     ],
   });
   console.log("  ✓ Monitors: 20 products");
+
+  // ── Usuario Admin (acceso ERP) ────────────────────────────────
+  // Credenciales desde variables de entorno (.env, no versionado).
+  // NUNCA hardcodear la contraseña en el código.
+  const requiredAdminEnv = ["ADMIN_USERNAME", "ADMIN_PASSWORD"] as const;
+  const missingAdminEnv = requiredAdminEnv.filter((key) => !process.env[key]);
+  if (missingAdminEnv.length > 0) {
+    console.error(
+      `❌ Faltan variables de entorno para el admin: ${missingAdminEnv.join(", ")}.` +
+        " Defínelas en .env (ADMIN_USERNAME y ADMIN_PASSWORD).",
+    );
+    process.exit(1);
+  }
+
+  const adminUsuario = process.env.ADMIN_USERNAME!;
+  const adminPassword = process.env.ADMIN_PASSWORD!;
+  const adminHash = await bcrypt.hash(adminPassword, 10);
+
+  await prisma.admin.upsert({
+    where: { usuario: adminUsuario },
+    update: {
+      passwordHash: adminHash,
+      nombre: "Globy Rivera",
+    },
+    create: {
+      usuario: adminUsuario,
+      passwordHash: adminHash,
+      nombre: "Globy Rivera",
+    },
+  });
+  console.log(
+    `  ✓ Admin: '${adminUsuario}' (contraseña desde ADMIN_PASSWORD, no se imprime)`,
+  );
 
   console.log("\n✅ Seed complete: 159 products across 9 categories (from PRODUCTOS.md)");
 }

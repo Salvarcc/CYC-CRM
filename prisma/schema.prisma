@@ -10,23 +10,23 @@ datasource db {
 // ─── Procesador (CPU) ───────────────────────────────────────────────
 
 model Cpu {
-  id                       String   @id @default(cuid())
-  nombre                   String
-  marca                    String
-  socket                   String
-  tipoMemoria              String   // DDR4 | DDR5
-  requiereCooler           Boolean
-  tdp                      Int      // Watts
-  tieneGraficosIntegrados  Boolean
-  imagenUrl                String?
-  moneda                   String   @default("USD") // USD | PEN
-  precio                   Decimal? @db.Decimal(10, 2)
-  stock                    Int      @default(0)
-  subcategoria             String? // Subcategoría del catálogo (PRODUCTOS.md)
-  oculto                   Boolean  @default(false) // soft-delete: ocultar del catálogo público
-  cotizador                Boolean  @default(true)  // mostrar en el PC Builder / cotizador
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  nombre                  String
+  marca                   String
+  socket                  String
+  tipoMemoria             String // DDR4 | DDR5
+  requiereCooler          Boolean
+  tdp                     Int // Watts
+  tieneGraficosIntegrados Boolean
+  imagenUrl               String?
+  moneda                  String   @default("USD") // USD | PEN
+  precio                  Decimal? @db.Decimal(10, 2)
+  stock                   Int      @default(0)
+  subcategoria            String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto                  Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador               Boolean  @default(true) // mostrar en el PC Builder / cotizador
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   @@index([socket])
   @@index([tipoMemoria])
@@ -35,23 +35,23 @@ model Cpu {
 // ─── Placa Madre (Motherboard) ──────────────────────────────────────
 
 model Motherboard {
-  id            String   @id @default(cuid())
-  nombre        String
-  marca         String
-  socket        String
-  tipoMemoria   String   // DDR4 | DDR5
-  factorForma   String   // ATX | Micro-ATX | Mini-ITX
-  ramSlots      Int
-  maxMemoriaGB  Int
-  imagenUrl     String?
-  moneda        String   @default("USD") // USD | PEN
-  precio        Decimal? @db.Decimal(10, 2)
-  stock         Int      @default(0)
-  subcategoria  String? // Subcategoría del catálogo (PRODUCTOS.md)
-  oculto        Boolean  @default(false) // soft-delete: ocultar del catálogo público
-  cotizador     Boolean  @default(true)  // mostrar en el PC Builder / cotizador
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  nombre       String
+  marca        String
+  socket       String
+  tipoMemoria  String // DDR4 | DDR5
+  factorForma  String // ATX | Micro-ATX | Mini-ITX
+  ramSlots     Int
+  maxMemoriaGB Int
+  imagenUrl    String?
+  moneda       String   @default("USD") // USD | PEN
+  precio       Decimal? @db.Decimal(10, 2)
+  stock        Int      @default(0)
+  subcategoria String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto       Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador    Boolean  @default(true) // mostrar en el PC Builder / cotizador
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([socket])
   @@index([tipoMemoria])
@@ -61,22 +61,22 @@ model Motherboard {
 // ─── Memoria RAM ────────────────────────────────────────────────────
 
 model Ram {
-  id             String   @id @default(cuid())
-  nombre         String
-  marca          String
-  tipoMemoria    String   // DDR4 | DDR5
-  factorForma    String   // DIMM | SODIMM
-  capacidadGB    Int
-  frecuenciaMHz  Int
-  imagenUrl      String?
-  moneda         String   @default("USD") // USD | PEN
-  precio         Decimal? @db.Decimal(10, 2)
-  stock          Int      @default(0)
-  subcategoria   String? // Subcategoría del catálogo (PRODUCTOS.md)
-  oculto         Boolean  @default(false) // soft-delete: ocultar del catálogo público
-  cotizador      Boolean  @default(true)  // mostrar en el PC Builder / cotizador
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String   @id @default(cuid())
+  nombre        String
+  marca         String
+  tipoMemoria   String // DDR4 | DDR5
+  factorForma   String // DIMM | SODIMM
+  capacidadGB   Int
+  frecuenciaMHz Int
+  imagenUrl     String?
+  moneda        String   @default("USD") // USD | PEN
+  precio        Decimal? @db.Decimal(10, 2)
+  stock         Int      @default(0)
+  subcategoria  String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto        Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador     Boolean  @default(true) // mostrar en el PC Builder / cotizador
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([tipoMemoria])
   @@index([factorForma])
@@ -85,21 +85,21 @@ model Ram {
 // ─── Tarjeta de Video (GPU) ─────────────────────────────────────────
 
 model Gpu {
-  id                              String   @id @default(cuid())
-  nombre                          String
-  marca                           String
-  vramGB                          Int
-  consumoRecomendadoFuenteWatts   Int
-  largoMm                         Int
-  imagenUrl                       String?
-  moneda                          String   @default("USD") // USD | PEN
-  precio                          Decimal? @db.Decimal(10, 2)
-  stock                           Int      @default(0)
-  subcategoria                    String? // Subcategoría del catálogo (PRODUCTOS.md)
-  oculto                          Boolean  @default(false) // soft-delete: ocultar del catálogo público
-  cotizador                       Boolean  @default(true)  // mostrar en el PC Builder / cotizador
-  createdAt                       DateTime @default(now())
-  updatedAt                       DateTime @updatedAt
+  id                            String   @id @default(cuid())
+  nombre                        String
+  marca                         String
+  vramGB                        Int
+  consumoRecomendadoFuenteWatts Int
+  largoMm                       Int
+  imagenUrl                     String?
+  moneda                        String   @default("USD") // USD | PEN
+  precio                        Decimal? @db.Decimal(10, 2)
+  stock                         Int      @default(0)
+  subcategoria                  String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto                        Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador                     Boolean  @default(true) // mostrar en el PC Builder / cotizador
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
 
   @@index([marca])
 }
@@ -107,22 +107,22 @@ model Gpu {
 // ─── Sistema de Refrigeración (Cooler / AIO) ────────────────────────
 
 model Cooler {
-  id                  String   @id @default(cuid())
-  nombre              String
-  marca               String
-  socketsSoportados   String[] // e.g. ["LGA1700", "AM5", "LGA1851"]
-  tdpSoportadoWatts   Int
-  tipoRefrigeracion   String   // Aire | Líquida AIO
-  numeroVentiladores  Int
-  imagenUrl           String?
-  moneda              String   @default("USD") // USD | PEN
-  precio              Decimal? @db.Decimal(10, 2)
-  stock               Int      @default(0)
-  subcategoria        String? // Subcategoría del catálogo (PRODUCTOS.md)
-  oculto              Boolean  @default(false) // soft-delete: ocultar del catálogo público
-  cotizador           Boolean  @default(true)  // mostrar en el PC Builder / cotizador
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  nombre             String
+  marca              String
+  socketsSoportados  String[] // e.g. ["LGA1700", "AM5", "LGA1851"]
+  tdpSoportadoWatts  Int
+  tipoRefrigeracion  String // Aire | Líquida AIO
+  numeroVentiladores Int
+  imagenUrl          String?
+  moneda             String   @default("USD") // USD | PEN
+  precio             Decimal? @db.Decimal(10, 2)
+  stock              Int      @default(0)
+  subcategoria       String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto             Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador          Boolean  @default(true) // mostrar en el PC Builder / cotizador
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([tipoRefrigeracion])
 }
@@ -130,23 +130,23 @@ model Cooler {
 // ─── Gabinete (Case) ────────────────────────────────────────────────
 
 model Case {
-  id                            String   @id @default(cuid())
-  nombre                        String
-  marca                         String
-  soportaFactoresForma          String[] // e.g. ["ATX", "Micro-ATX", "Mini-ITX"]
-  largoMaxGpuMm                 Int
-  tieneFuentePoder              Boolean
-  potenciaFuenteWatts           Int      // 0 si no incluye
-  soportaFanCoolerVentiladores  Int      // max fans or radiator slots
-  imagenUrl                     String?
-  moneda                        String   @default("USD") // USD | PEN
-  precio                        Decimal? @db.Decimal(10, 2)
-  stock                         Int      @default(0)
-  subcategoria                  String? // Subcategoría del catálogo (PRODUCTOS.md)
-  oculto                        Boolean  @default(false) // soft-delete: ocultar del catálogo público
-  cotizador                     Boolean  @default(true)  // mostrar en el PC Builder / cotizador
-  createdAt                     DateTime @default(now())
-  updatedAt                     DateTime @updatedAt
+  id                           String   @id @default(cuid())
+  nombre                       String
+  marca                        String
+  soportaFactoresForma         String[] // e.g. ["ATX", "Micro-ATX", "Mini-ITX"]
+  largoMaxGpuMm                Int
+  tieneFuentePoder             Boolean
+  potenciaFuenteWatts          Int // 0 si no incluye
+  soportaFanCoolerVentiladores Int // max fans or radiator slots
+  imagenUrl                    String?
+  moneda                       String   @default("USD") // USD | PEN
+  precio                       Decimal? @db.Decimal(10, 2)
+  stock                        Int      @default(0)
+  subcategoria                 String? // Subcategoría del catálogo (PRODUCTOS.md)
+  oculto                       Boolean  @default(false) // soft-delete: ocultar del catálogo público
+  cotizador                    Boolean  @default(true) // mostrar en el PC Builder / cotizador
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
 
   @@index([soportaFactoresForma])
 }
@@ -154,67 +154,76 @@ model Case {
 // ─── Fuente de Poder (PSU) ──────────────────────────────────────────
 
 model Psu {
-  id                   String   @id @default(cuid())
-  nombre               String
-  marca                String
-  potenciaWatts        Int
-  certificacion80Plus  String   @default("Bronze")
-  esModular            Boolean  @default(false)
-  factorForma          String   @default("ATX")
-  moneda               String   @default("USD")
-  imagenUrl            String?
-  precio               Float?
-  stock                Int      @default(0)
-  subcategoria         String?
-  oculto               Boolean  @default(false)
-  cotizador            Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  nombre              String
+  marca               String
+  potenciaWatts       Int
+  certificacion80Plus String   @default("Bronze")
+  esModular           Boolean  @default(false)
+  factorForma         String   @default("ATX")
+  moneda              String   @default("USD")
+  imagenUrl           String?
+  precio              Float?
+  stock               Int      @default(0)
+  subcategoria        String?
+  oculto              Boolean  @default(false)
+  cotizador           Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Ssd {
-  id                   String   @id @default(cuid())
-  nombre               String
-  marca                String
-  capacidadGB          Int
-  formato              String
-  interfaz             String?
-  lecturaMBs           Int?
-  escrituraMBs         Int?
-  moneda               String   @default("USD")
-  imagenUrl            String?
-  precio               Float?
-  stock                Int      @default(0)
-  subcategoria         String?
-  oculto               Boolean  @default(false)
-  cotizador            Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id           String   @id @default(cuid())
+  nombre       String
+  marca        String
+  capacidadGB  Int
+  formato      String
+  interfaz     String?
+  lecturaMBs   Int?
+  escrituraMBs Int?
+  moneda       String   @default("USD")
+  imagenUrl    String?
+  precio       Float?
+  stock        Int      @default(0)
+  subcategoria String?
+  oculto       Boolean  @default(false)
+  cotizador    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Monitor {
-  id                   String   @id @default(cuid())
-  nombre               String
-  marca                String
-  tamano               String
-  resolucion           String
-  tipoPanel            String?
-  ratioAspecto         String?
-  tiempoRespuestaMs    Int?
-  tasaRefrescoHz       Int?
-  puertos              String?
-  moneda               String   @default("USD")
-  imagenUrl            String?
-  precio               Float?
-  stock                Int      @default(0)
-  subcategoria         String?
-  oculto               Boolean  @default(false)
-  cotizador            Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                String   @id @default(cuid())
+  nombre            String
+  marca             String
+  tamano            String
+  resolucion        String
+  tipoPanel         String?
+  ratioAspecto      String?
+  tiempoRespuestaMs Int?
+  tasaRefrescoHz    Int?
+  puertos           String?
+  moneda            String   @default("USD")
+  imagenUrl         String?
+  precio            Float?
+  stock             Int      @default(0)
+  subcategoria      String?
+  oculto            Boolean  @default(false)
+  cotizador         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 // ─── Cliente (tienda pública) ────────────────────────────────────────
+
+model Admin {
+  id           String   @id @default(cuid())
+  usuario      String   @unique // username de acceso al ERP
+  passwordHash String // bcrypt
+  nombre       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
 
 model Cliente {
   id           String   @id @default(cuid())
@@ -226,6 +235,7 @@ model Cliente {
   updatedAt    DateTime @updatedAt
 
   cotizaciones Cotizacion[]
+  ventas       Venta[]
 
   @@index([nombre])
 }
@@ -237,10 +247,10 @@ model Cotizacion {
   clienteId        String
   cliente          Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   numero           String   @unique // #CYM-2026-XXXX
-  totalConsumption Int      // watts estimados
+  totalConsumption Int // watts estimados
   totalPrice       Decimal  @db.Decimal(10, 2)
   moneda           String   @default("USD") // moneda al momento de guardar
-  configuracion    Json     // snapshot completo del configurador (selections + attrs)
+  configuracion    Json // snapshot completo del configurador (selections + attrs)
   createdAt        DateTime @default(now())
   expiresAt        DateTime // createdAt + 3 días
   cumplida         Boolean  @default(false) // marcado por admin cuando la cotización fue atendida/entregada
@@ -256,30 +266,68 @@ model CotizacionItem {
   id           String     @id @default(cuid())
   cotizacionId String
   cotizacion   Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
-  stepKey      String     // cpu | motherboard | ram | gpu | cooler | case | psu
-  productId    String     // ID del producto en su tabla original
+  stepKey      String // cpu | motherboard | ram | gpu | cooler | case | psu
+  productId    String // ID del producto en su tabla original
   nombre       String
   marca        String
   precio       Decimal?   @db.Decimal(10, 2)
   moneda       String     @default("USD")
   imagenUrl    String?
-  category     String     // "Procesador (CPU)", "Placa Madre", etc.
-  categoryKey  String     // cpu, motherboard, ram, etc.
+  category     String // "Procesador (CPU)", "Placa Madre", etc.
+  categoryKey  String // cpu, motherboard, ram, etc.
 
   @@index([cotizacionId])
+  @@index([productId])
+}
+
+// ─── Venta (pedido pagado con Stripe) ───────────────────────────────
+
+model Venta {
+  id              String   @id @default(cuid())
+  numero          String   @unique // PED-2026-XXXX
+  clienteId       String
+  cliente         Cliente  @relation(fields: [clienteId], references: [id])
+  stripeSessionId String   @unique // idempotencia del webhook
+  subtotalUsd     Decimal  @db.Decimal(10, 2)
+  igvUsd          Decimal  @db.Decimal(10, 2)
+  totalUsd        Decimal  @db.Decimal(10, 2)
+  moneda          String   @default("USD") // moneda cobrada (siempre USD)
+  estado          String   @default("Pagada") // Pagada | PendienteReembolso
+  createdAt       DateTime @default(now())
+
+  items VentaItem[]
+
+  @@index([clienteId])
+  @@index([createdAt])
+  @@index([numero])
+}
+
+model VentaItem {
+  id        String  @id @default(cuid())
+  ventaId   String
+  venta     Venta   @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  productId String // id del producto en su tabla original (Cpu/Gpu/...)
+  stepKey   String // categoryKey: cpu | gpu | ssd | monitor | extra-ram | ...
+  nombre    String
+  marca     String
+  precioUsd Decimal @db.Decimal(10, 2) // precio unitario en USD al momento del pago
+  imagenUrl String?
+  qty       Int     @default(1)
+
+  @@index([ventaId])
   @@index([productId])
 }
 
 // ─── Tipo de Cambio (USD/PEN) ────────────────────────────────────────
 
 model TipoCambio {
-  id          String   @id @default(cuid())
-  compra      Decimal  @db.Decimal(10, 4) // Tipo de cambio de compra (USD → PEN)
-  venta       Decimal  @db.Decimal(10, 4) // Tipo de cambio de venta (USD → PEN)
-  fuente      String   @default("SUNAT")  // Fuente del tipo de cambio
-  fecha       DateTime @default(now())    // Fecha del tipo de cambio
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  compra    Decimal  @db.Decimal(10, 4) // Tipo de cambio de compra (USD → PEN)
+  venta     Decimal  @db.Decimal(10, 4) // Tipo de cambio de venta (USD → PEN)
+  fuente    String   @default("SUNAT") // Fuente del tipo de cambio
+  fecha     DateTime @default(now()) // Fecha del tipo de cambio
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([fecha])
 }

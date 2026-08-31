@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/tailgrids/core/table";
 import { MenuDotsIcon } from "@/utils/icon";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DownloadIcon, FilterIcon } from "./icons";
 
 type BadgeColor =
@@ -45,118 +45,48 @@ interface Order {
   paymentMethod: string;
   status: string;
   statusColor: BadgeColor;
+  totalUsd: number;
+  createdAt: string;
 }
 
-const STATUS_TABS = ["Todos", "Pendientes", "En Proceso", "Completados", "Entregados"] as const;
-
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "PED-2026-001",
-    client: "María García",
-    date: "15 Ago 2026",
-    items: 8,
-    total: "$3,249.96",
-    paymentMethod: "Transferencia",
-    status: "Completado",
-    statusColor: "success",
-  },
-  {
-    id: "PED-2026-002",
-    client: "Carlos López",
-    date: "14 Ago 2026",
-    items: 6,
-    total: "$1,849.96",
-    paymentMethod: "Tarjeta de Crédito",
-    status: "En Proceso",
-    statusColor: "blue",
-  },
-  {
-    id: "PED-2026-003",
-    client: "Ana Martínez",
-    date: "13 Ago 2026",
-    items: 5,
-    total: "$1,049.96",
-    paymentMethod: "Efectivo",
-    status: "Entregado",
-    statusColor: "violet",
-  },
-  {
-    id: "PED-2026-004",
-    client: "Roberto Sánchez",
-    date: "12 Ago 2026",
-    items: 9,
-    total: "$4,129.96",
-    paymentMethod: "Transferencia",
-    status: "Pendiente",
-    statusColor: "warning",
-  },
-  {
-    id: "PED-2026-005",
-    client: "Laura Fernández",
-    date: "11 Ago 2026",
-    items: 7,
-    total: "$2,449.96",
-    paymentMethod: "Tarjeta de Débito",
-    status: "Completado",
-    statusColor: "success",
-  },
-  {
-    id: "PED-2026-006",
-    client: "Diego Ruiz",
-    date: "10 Ago 2026",
-    items: 5,
-    total: "$1,149.96",
-    paymentMethod: "Transferencia",
-    status: "En Proceso",
-    statusColor: "blue",
-  },
-  {
-    id: "PED-2026-007",
-    client: "Sofía Hernández",
-    date: "09 Ago 2026",
-    items: 10,
-    total: "$4,549.96",
-    paymentMethod: "Tarjeta de Crédito",
-    status: "Entregado",
-    statusColor: "violet",
-  },
-  {
-    id: "PED-2026-008",
-    client: "Pablo Moreno",
-    date: "08 Ago 2026",
-    items: 6,
-    total: "$1,549.96",
-    paymentMethod: "Efectivo",
-    status: "Pendiente",
-    statusColor: "warning",
-  },
-];
+const STATUS_TABS = ["Todos", "Pagadas"] as const;
 
 export default function VentasPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [last24h, setLast24h] = useState(0);
   const [activeTab, setActiveTab] = useState<string>("Todos");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredOrders = MOCK_ORDERS.filter((order) => {
+  useEffect(() => {
+    fetch("/api/admin/ventas")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: Order[]) => {
+        setOrders(data);
+        const cutoff = Date.now() - 24 * 3_600_000;
+        setLast24h(
+          data.filter((o) => new Date(o.createdAt).getTime() >= cutoff).length,
+        );
+      })
+      .catch(() => setOrders([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredOrders = orders.filter((order) => {
     const matchesTab =
       activeTab === "Todos" ||
-      order.status === activeTab.replace(/s$/, "").replace("En Proceso", "En Proceso");
+      (activeTab === "Pagadas" ? order.status === "Pagada" : order.status === activeTab);
     const matchesSearch =
       order.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
-  const totalRevenue = MOCK_ORDERS.reduce((sum, o) => {
-    const val = parseFloat(o.total.replace(/[$,]/g, ""));
-    return sum + val;
-  }, 0);
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.totalUsd ?? 0), 0);
 
   const tabCounts: Record<string, number> = {
-    Todos: MOCK_ORDERS.length,
-    Pendientes: MOCK_ORDERS.filter((o) => o.status === "Pendiente").length,
-    "En Proceso": MOCK_ORDERS.filter((o) => o.status === "En Proceso").length,
-    Completados: MOCK_ORDERS.filter((o) => o.status === "Completado").length,
-    Entregados: MOCK_ORDERS.filter((o) => o.status === "Entregado").length,
+    Todos: orders.length,
+    Pagadas: orders.filter((o) => o.status === "Pagada").length,
   };
 
   return (
@@ -182,7 +112,7 @@ export default function VentasPage() {
                     Total Pedidos
                   </p>
                   <p className="mt-1 text-2xl leading-8 font-semibold text-text-primary">
-                    {MOCK_ORDERS.length}
+                    {orders.length}
                   </p>
                 </div>
                 <div className="flex size-10 items-center justify-center rounded-lg bg-badge-primary-background">
@@ -217,15 +147,15 @@ export default function VentasPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm leading-5 font-medium text-text-tertiary">
-                    Pendientes
+                    Últimas 24h
                   </p>
                   <p className="mt-1 text-2xl leading-8 font-semibold text-orange-600">
-                    {tabCounts.Pendientes}
+                    {last24h}
                   </p>
                 </div>
                 <div className="flex size-10 items-center justify-center rounded-lg bg-badge-warning-background">
                   <span className="text-badge-warning-icon-color material-symbols-outlined text-xl">
-                    pending
+                    schedule
                   </span>
                 </div>
               </div>
@@ -239,7 +169,7 @@ export default function VentasPage() {
                     Ticket Promedio
                   </p>
                   <p className="mt-1 text-2xl leading-8 font-semibold text-text-primary">
-                    ${(totalRevenue / MOCK_ORDERS.length).toFixed(2)}
+                    ${(orders.length ? totalRevenue / orders.length : 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="flex size-10 items-center justify-center rounded-lg bg-badge-violet-background">
@@ -335,7 +265,20 @@ export default function VentasPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
+                {loading ? (
+                  <TableRow className="[&_td]:border-none">
+                    <TableCell className="px-6 py-10 text-center text-sm text-text-tertiary" colSpan={7}>
+                      Cargando ventas...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredOrders.length === 0 ? (
+                  <TableRow className="[&_td]:border-none">
+                    <TableCell className="px-6 py-10 text-center text-sm text-text-tertiary" colSpan={7}>
+                      Aún no hay ventas registradas.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                filteredOrders.map((order) => (
                   <TableRow key={order.id} className="[&_td]:border-none">
                     <TableCell className="px-6 py-3.5 text-sm leading-5 font-medium text-text-primary">
                       {order.id}
@@ -372,7 +315,8 @@ export default function VentasPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
             </TableRoot>
           </div>

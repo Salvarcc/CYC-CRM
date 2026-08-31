@@ -35,6 +35,7 @@ import { EyeOffIcon, EyeOnIcon, FilterIcon, MinusIcon, PlusIcon, RefreshIcon } f
 import { getSubcategorias } from "./subcategorias";
 import CategoryAttributeForm from "./category-attribute-form";
 import ProductDetailModal from "./product-detail-modal";
+import { formValueToArray } from "./technical-attrs";
 
 type BadgeColor =
   | "gray"
@@ -365,6 +366,84 @@ function getAddPayload(categoryKey: string, form: Record<string, string>) {
   }
 }
 
+const REQUIRED_TECHNICAL_FIELDS: Record<string, { field: string; label: string; array?: boolean }[]> = {
+  cpu: [
+    { field: "socket", label: "Socket" },
+    { field: "tipoMemoria", label: "Tipo Memoria" },
+    { field: "tdp", label: "TDP (Watts)" },
+  ],
+  motherboard: [
+    { field: "socket", label: "Socket" },
+    { field: "tipoMemoria", label: "Tipo Memoria" },
+    { field: "factorForma", label: "Factor Forma" },
+    { field: "ramSlots", label: "RAM Slots" },
+    { field: "maxMemoriaGB", label: "Max Memoria RAM (GB)" },
+  ],
+  ram: [
+    { field: "tipoMemoria", label: "Tipo Memoria" },
+    { field: "factorForma", label: "Factor Forma" },
+    { field: "capacidadGB", label: "Capacidad (GB)" },
+    { field: "frecuenciaMHz", label: "Frecuencia (MHz)" },
+  ],
+  gpu: [
+    { field: "vramGB", label: "VRAM (GB)" },
+    { field: "consumoRecomendadoFuenteWatts", label: "PSU Rec. (Watts)" },
+    { field: "largoMm", label: "Largo (mm)" },
+  ],
+  cooler: [
+    { field: "socketsSoportados", label: "Sockets Soportados", array: true },
+    { field: "tdpSoportadoWatts", label: "TDP Soportado (W)" },
+    { field: "tipoRefrigeracion", label: "Tipo" },
+    { field: "numeroVentiladores", label: "N° Ventiladores" },
+  ],
+  case: [
+    { field: "soportaFactoresForma", label: "Factores de Forma Soportados", array: true },
+    { field: "largoMaxGpuMm", label: "GPU Máx (mm)" },
+    { field: "potenciaFuenteWatts", label: "Potencia Fuente (W)" },
+    { field: "soportaFanCoolerVentiladores", label: "Max Fans / Radiador" },
+  ],
+  psu: [
+    { field: "potenciaWatts", label: "Potencia (W)" },
+    { field: "certificacion80Plus", label: "Certificación 80+" },
+    { field: "factorForma", label: "Factor Forma" },
+  ],
+  ssd: [
+    { field: "capacidadGB", label: "Capacidad (GB)" },
+    { field: "formato", label: "Formato" },
+    { field: "interfaz", label: "Interfaz" },
+    { field: "lecturaMBs", label: "Lectura (MB/s)" },
+    { field: "escrituraMBs", label: "Escritura (MB/s)" },
+  ],
+  monitor: [
+    { field: "tamano", label: "Tamaño" },
+    { field: "resolucion", label: "Resolución" },
+    { field: "tipoPanel", label: "Tipo Panel" },
+    { field: "ratioAspecto", label: "Relación de Aspecto" },
+    { field: "tiempoRespuestaMs", label: "Tiempo Respuesta (ms)" },
+    { field: "tasaRefrescoHz", label: "Tasa de Refresco (Hz)" },
+    { field: "puertos", label: "Puertos", array: true },
+  ],
+};
+
+function getMissingRequiredFields(categoryKey: string, form: Record<string, string>): string[] {
+  const missing: string[] = [];
+
+  if (!form.nombre?.trim()) missing.push("Nombre del Producto");
+  if (!form.marca?.trim()) missing.push("Marca");
+  if (!form.precio) missing.push("Precio");
+  if (!form.stock) missing.push("Stock");
+  if (getSubcategorias(categoryKey).length > 0 && !form.subcategoria) missing.push("Subcategoría");
+
+  const required = REQUIRED_TECHNICAL_FIELDS[categoryKey] ?? [];
+  for (const { field, label, array } of required) {
+    const raw = (form[field] ?? "").trim();
+    const empty = array ? formValueToArray(raw).length === 0 : raw === "";
+    if (empty) missing.push(label);
+  }
+
+  return missing;
+}
+
 export default function InventarioPage() {
   const [activeCategory, setActiveCategory] = useState<string>("Todos");
   const [searchQuery, setSearchQuery] = useState("");
@@ -554,8 +633,9 @@ export default function InventarioPage() {
   };
 
   const handleAddProduct = async () => {
-    if (!addForm.nombre?.trim()) {
-      toast.error("El nombre del producto es obligatorio");
+    const missing = getMissingRequiredFields(addCategory, addForm);
+    if (missing.length > 0) {
+      toast.error(`Campos obligatorios pendientes: ${missing.join(", ")}`);
       return;
     }
     setSubmitting(true);
@@ -1212,7 +1292,10 @@ export default function InventarioPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-text-primary">Subcategoría</label>
+                      <label className="mb-1 block text-sm font-medium text-text-primary">
+                        Subcategoría{" "}
+                        {getSubcategorias(addCategory).length > 0 && <span className="text-red-500">*</span>}
+                      </label>
                       <select
                         className="w-full rounded-lg border border-card-border bg-background-white-primary px-3 py-2.5 text-sm text-text-primary disabled:cursor-not-allowed disabled:text-text-tertiary"
                         value={addForm.subcategoria || ""}
@@ -1264,7 +1347,9 @@ export default function InventarioPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="mb-1 block text-sm font-medium text-text-primary">Precio</label>
+                        <label className="mb-1 block text-sm font-medium text-text-primary">
+                          Precio <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="number"
                           step="0.01"
@@ -1275,7 +1360,9 @@ export default function InventarioPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-sm font-medium text-text-primary">Stock</label>
+                        <label className="mb-1 block text-sm font-medium text-text-primary">
+                          Stock <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="number"
                           placeholder="0"
