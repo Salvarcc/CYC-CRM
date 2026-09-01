@@ -80,6 +80,7 @@ export default function TiendaPage() {
   const [sortBy, setSortBy] = useState("relevancia");
   const [maxPrice, setMaxPrice] = useState(5000);
   const [page, setPage] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const PER_PAGE = 15;
 
   useEffect(() => {
@@ -118,6 +119,17 @@ export default function TiendaPage() {
     });
     setPage(1);
   };
+
+  const clearFilters = () => {
+    setSelectedCategories(new Set());
+    setSelectedBrands(new Set());
+    setMaxPrice(5000);
+    setPage(1);
+  };
+
+  const activeFilterCount =
+    selectedCategories.size + selectedBrands.size + (maxPrice < 5000 ? 1 : 0);
+  const hasActiveFilters = activeFilterCount > 0;
 
   const filtered = useMemo(() => {
     let list = allProducts;
@@ -159,19 +171,46 @@ export default function TiendaPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
+  const priceMaxLabel =
+    currency === "USD"
+      ? `$${maxPrice.toLocaleString("en-US")}`
+      : `S/${(maxPrice * 3.75).toLocaleString("es-PE")}`;
+
   return (
-    <div className="mx-auto flex w-full flex-col gap-8 px-4 py-10 md:flex-row md:px-8">
-      {/* ── Sidebar Filters ───────────────────────────────── */}
-      <aside className="w-full flex-shrink-0 space-y-6 md:w-64">
+    <div className="mx-auto flex w-full flex-col gap-6 px-4 py-6 lg:flex-row lg:gap-8 lg:px-8">
+      {/* ── Filters panel ──
+          Fixed sidebar on desktop (lg+); collapsible panel on mobile/tablet
+          toggled via the "Filtros" button. Contains Categoría + Marca + clear. */}
+      <aside
+        className={`w-full flex-shrink-0 lg:block lg:w-64 ${
+          filtersOpen ? "block" : "hidden"
+        }`}
+      >
         <div
-          className="space-y-0 rounded-xl p-4 shadow-sm"
+          className="rounded-xl p-4 shadow-sm"
           style={{
             backgroundColor: "var(--store-surface-container-lowest)",
             border: "1px solid var(--store-outline-variant)",
           }}
         >
+          <div className="mb-2 flex items-center justify-between lg:hidden">
+            <h3
+              className="text-lg font-semibold"
+              style={{ color: "var(--store-on-surface)" }}
+            >
+              Filtros
+            </h3>
+            <button
+              aria-label="Cerrar filtros"
+              onClick={() => setFiltersOpen(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+              style={{ color: "var(--store-on-surface-variant)" }}
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
           <h3
-            className="mb-4 text-xl font-semibold"
+            className="mb-4 hidden text-xl font-semibold lg:block"
             style={{ color: "var(--store-on-surface)" }}
           >
             Filtros
@@ -182,13 +221,12 @@ export default function TiendaPage() {
             className="border-b py-3"
             style={{ borderColor: "var(--store-outline-variant)" }}
           >
-            <button
-              className="flex w-full items-center justify-between text-left text-sm font-semibold uppercase tracking-wide"
+            <h4
+              className="text-left text-sm font-semibold uppercase tracking-wide"
               style={{ color: "var(--store-on-surface)" }}
             >
               Categoría
-              <span className="material-symbols-outlined text-lg">expand_more</span>
-            </button>
+            </h4>
             <div className="mt-3 space-y-2 text-sm">
               {CATEGORY_OPTIONS.map((cat) => (
                 <label
@@ -210,52 +248,14 @@ export default function TiendaPage() {
             </div>
           </div>
 
-          {/* Price */}
-          <div
-            className="border-b py-3"
-            style={{ borderColor: "var(--store-outline-variant)" }}
-          >
-            <button
-              className="flex w-full items-center justify-between text-left text-sm font-semibold uppercase tracking-wide"
-              style={{ color: "var(--store-on-surface)" }}
-            >
-              Precio ({currency})
-              <span className="material-symbols-outlined text-lg">expand_more</span>
-            </button>
-            <div className="mt-4 px-1">
-              <input
-                type="range"
-                min={0}
-                max={5000}
-                step={50}
-                value={maxPrice}
-                onChange={(e) => {
-                  setMaxPrice(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="w-full cursor-pointer"
-                style={{
-                  ["--range-fill" as string]: `${(maxPrice / 5000) * 100}%`,
-                }}
-              />
-              <div className="mt-2 flex justify-between text-xs font-medium">
-                <span style={{ color: "var(--store-on-surface-variant)" }}>$0</span>
-                <span style={{ color: "var(--store-on-surface-variant)" }}>
-                  {currency === "USD" ? `$${maxPrice.toLocaleString("en-US")}` : `S/${(maxPrice * 3.75).toLocaleString("es-PE")}`}
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Brand */}
           <div className="pt-3">
-            <button
-              className="flex w-full items-center justify-between text-left text-sm font-semibold uppercase tracking-wide"
+            <h4
+              className="text-left text-sm font-semibold uppercase tracking-wide"
               style={{ color: "var(--store-on-surface)" }}
             >
               Marca
-              <span className="material-symbols-outlined text-lg">expand_more</span>
-            </button>
+            </h4>
             <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-sm">
               {BRAND_OPTIONS.map((brand) => (
                 <label
@@ -276,25 +276,54 @@ export default function TiendaPage() {
               ))}
             </div>
           </div>
+
+          {/* Clear */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="mt-4 flex w-full items-center justify-center gap-1 rounded-lg border py-2 text-sm font-semibold transition-colors"
+              style={{
+                borderColor: "var(--store-outline-variant)",
+                color: "var(--store-on-surface)",
+              }}
+            >
+              <span className="material-symbols-outlined text-base">
+                filter_alt_off
+              </span>
+              Limpiar filtros
+            </button>
+          )}
         </div>
 
-        {/* CTA Card */}
+        {/* CTA — below the filters, on the left sidebar */}
         <div
-          className="flex flex-col items-center gap-4 rounded-xl p-6 text-center shadow-sm"
+          className="mt-4 flex flex-col items-start gap-3 rounded-xl p-4 shadow-sm"
           style={{
             backgroundColor: "var(--store-surface-container-lowest)",
             border: "1px solid var(--store-outline-variant)",
           }}
         >
+          <span
+            className="material-symbols-outlined"
+            style={{ color: "var(--store-primary)", fontSize: "28px" }}
+          >
+            build
+          </span>
           <h4
-            className="text-lg font-semibold"
+            className="text-base font-semibold"
             style={{ color: "var(--store-on-surface)" }}
           >
             ¿Te gustaría armar tu PC desde cero?
           </h4>
+          <p
+            className="text-sm"
+            style={{ color: "var(--store-on-surface-variant)" }}
+          >
+            Usa nuestro configurador paso a paso con compatibilidad garantizada.
+          </p>
           <a
             href="/configurador"
-            className="w-full rounded-lg px-6 py-2 text-sm font-semibold transition-all hover:scale-95"
+            className="w-full rounded-lg px-4 py-2 text-center text-sm font-semibold transition-all hover:scale-95"
             style={{
               backgroundColor: "var(--store-primary)",
               color: "var(--store-on-primary)",
@@ -305,12 +334,12 @@ export default function TiendaPage() {
         </div>
       </aside>
 
-      {/* ── Product Grid ──────────────────────────────────── */}
+      {/* ── Products Column ─────────────────────────────── */}
       <div className="flex-1">
         {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <h1
-            className="text-3xl font-bold"
+            className="text-2xl font-bold sm:text-3xl"
             style={{ color: "var(--store-on-surface)" }}
           >
             {selectedCategories.size === 1
@@ -323,7 +352,7 @@ export default function TiendaPage() {
               ({filtered.length} productos)
             </span>
           </h1>
-          <div className="relative flex-1 md:max-w-md">
+          <div className="relative w-full md:max-w-md md:flex-1">
             <input
               type="text"
               placeholder="Buscar productos..."
@@ -371,6 +400,89 @@ export default function TiendaPage() {
           </div>
         </div>
 
+        {/* Mobile/tablet filter toggle + clear (below lg) */}
+        <div className="mt-4 flex items-center gap-3 lg:hidden">
+          <button
+            onClick={() => setFiltersOpen((o) => !o)}
+            className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+            style={{
+              borderColor: "var(--store-outline-variant)",
+              color: "var(--store-on-surface)",
+              backgroundColor: "var(--store-surface-container-lowest)",
+            }}
+          >
+            <span className="material-symbols-outlined text-lg">tune</span>
+            Filtros
+            {activeFilterCount > 0 && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                style={{
+                  backgroundColor: "var(--store-primary)",
+                  color: "var(--store-on-primary)",
+                }}
+              >
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-sm font-semibold transition-colors hover:text-[var(--store-error)]"
+              style={{ color: "var(--store-on-surface-variant)" }}
+            >
+              Limpiar
+            </button>
+          )}
+        </div>
+
+        {/* Price slider — always visible on every device */}
+        <div
+          className="mt-4 rounded-xl p-4 shadow-sm"
+          style={{
+            backgroundColor: "var(--store-surface-container-lowest)",
+            border: "1px solid var(--store-outline-variant)",
+          }}
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <span
+              className="text-sm font-semibold uppercase tracking-wide"
+              style={{ color: "var(--store-on-surface)" }}
+            >
+              Precio ({currency})
+            </span>
+            <span
+              className="text-sm font-bold"
+              style={{ color: "var(--store-primary)" }}
+            >
+              {priceMaxLabel}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={5000}
+            step={50}
+            value={maxPrice}
+            onChange={(e) => {
+              setMaxPrice(Number(e.target.value));
+              setPage(1);
+            }}
+            className="w-full cursor-pointer"
+            style={{
+              ["--range-fill" as string]: `${(maxPrice / 5000) * 100}%`,
+            }}
+          />
+          <div className="mt-1 flex justify-between text-xs font-medium">
+            <span style={{ color: "var(--store-on-surface-variant)" }}>$0</span>
+            <span style={{ color: "var(--store-on-surface-variant)" }}>
+              {currency === "USD"
+                ? "$5000"
+                : `S/${(5000 * 3.75).toLocaleString("es-PE")}`}
+            </span>
+          </div>
+        </div>
+
         {/* Grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-24">
@@ -390,7 +502,7 @@ export default function TiendaPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {paged.map((product) => {
                 const tags = getTags(product);
                 const isOutOfStock = product.stock === 0;
@@ -418,17 +530,17 @@ export default function TiendaPage() {
                     <div className="relative overflow-hidden bg-[var(--store-surface-container-low)] pt-[100%]">
                       <img
                         alt={product.nombre}
-                        className="absolute inset-0 h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+                        className="absolute inset-0 h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
                         src={product.imagenUrl || PLACEHOLDER_IMG}
                       />
                     </div>
 
-                    <div className="flex flex-1 flex-col p-4">
-                      <div className="mb-2 flex flex-wrap gap-2">
+                    <div className="flex flex-1 flex-col p-3">
+                      <div className="mb-2 flex flex-wrap gap-1">
                         {tags.map((tag) => (
                           <span
                             key={tag}
-                            className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wide"
+                            className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
                             style={{
                               backgroundColor: "var(--store-badge-blue-bg)",
                               color: "var(--store-badge-blue-fg)",
@@ -450,9 +562,9 @@ export default function TiendaPage() {
                       >
                         {product.marca}
                       </p>
-                      <div className="mt-auto pt-4 flex flex-col">
+                      <div className="mt-auto flex flex-col pt-2">
                         <span
-                          className="text-xl font-semibold"
+                          className="text-lg font-semibold"
                           style={{ color: "var(--store-primary)" }}
                         >
                           {displayPrice(product.precio, product.moneda, currency, rate.venta)}
@@ -473,7 +585,7 @@ export default function TiendaPage() {
                           });
                           toast.success(`${product.nombre} agregado al carrito`);
                         }}
-                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg py-2 text-sm font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                         style={{
                           backgroundColor: isOutOfStock
                             ? "var(--store-outline-variant)"
@@ -496,7 +608,7 @@ export default function TiendaPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-16 flex items-center justify-center gap-2">
+              <div className="mt-10 flex items-center justify-center gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}

@@ -979,10 +979,10 @@ export default function ConfiguradorPage() {
         </div>
       </div>
 
-      {/* ── Workspace: Two-Column Layout ─────────────────────── */}
-      <div className="flex flex-col gap-6 lg:flex-row">
-        {/* ── Left: Product Grid (65%) ─────────────────────── */}
-        <div className="flex w-full flex-col gap-4 lg:w-[65%]">
+      {/* ── Workspace Layout: Products Left, Resumen Right ── */}
+      <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
+        {/* ── LEFT COLUMN: Product Catalog & Controls ── */}
+        <div className="flex flex-1 flex-col gap-4 min-w-0">
           {/* Category header */}
           <div
             className="flex items-center justify-between rounded-xl border px-4 py-3"
@@ -1132,9 +1132,9 @@ export default function ConfiguradorPage() {
             </div>
           )}
 
-          {/* Product Cards */}
+          {/* Product Cards Grid */}
           {!loading && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
               {filteredProducts.map((product) => {
                 const isSelected = isViewSelected(product);
                 const outOfStock = product.stock <= 0;
@@ -1324,53 +1324,53 @@ export default function ConfiguradorPage() {
             </div>
           )}
 
-          {/* Step navigation buttons (mobile / bottom of grid) */}
+          {/* Step navigation buttons (bottom of grid) */}
           {!isExtraView && (
-          <div className="flex items-center justify-between">
-            <button
-              disabled={currentStep === 0}
-              onClick={handlePrev}
-              className="flex items-center gap-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-40"
-              style={{
-                borderColor: "var(--store-outline-variant)",
-                color: "var(--store-on-surface)",
-                backgroundColor: "var(--store-surface-container-lowest)",
-              }}
-            >
-              <span className="material-symbols-outlined text-lg">chevron_left</span>
-              Anterior
-            </button>
-
-            <div className="flex items-center gap-2">
-              <span
-                className="text-sm font-medium"
-                style={{ color: "var(--store-on-surface-variant)" }}
+            <div className="flex items-center justify-between">
+              <button
+                disabled={currentStep === 0}
+                onClick={handlePrev}
+                className="flex items-center gap-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-40"
+                style={{
+                  borderColor: "var(--store-outline-variant)",
+                  color: "var(--store-on-surface)",
+                  backgroundColor: "var(--store-surface-container-lowest)",
+                }}
               >
-                {currentStep + 1} / {STEPS.length}
-              </span>
-            </div>
+                <span className="material-symbols-outlined text-lg">chevron_left</span>
+                Anterior
+              </button>
 
-            <button
-              disabled={currentStep === STEPS.length - 1 || !isStepCompleted(currentStep)}
-              onClick={handleNext}
-              className="flex items-center gap-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-40"
-              style={{
-                borderColor: "var(--store-outline-variant)",
-                color: "var(--store-on-surface)",
-                backgroundColor: "var(--store-surface-container-lowest)",
-              }}
-            >
-              Siguiente
-              <span className="material-symbols-outlined text-lg">chevron_right</span>
-            </button>
-          </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "var(--store-on-surface-variant)" }}
+                >
+                  {currentStep + 1} / {STEPS.length}
+                </span>
+              </div>
+
+              <button
+                disabled={currentStep === STEPS.length - 1 || !isStepCompleted(currentStep)}
+                onClick={handleNext}
+                className="flex items-center gap-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-40"
+                style={{
+                  borderColor: "var(--store-outline-variant)",
+                  color: "var(--store-on-surface)",
+                  backgroundColor: "var(--store-surface-container-lowest)",
+                }}
+              >
+                Siguiente
+                <span className="material-symbols-outlined text-lg">chevron_right</span>
+              </button>
+            </div>
           )}
         </div>
 
-        {/* ── Right: Sticky Build Summary (35%) ──────────────── */}
-        <div className="relative w-full lg:w-[35%]">
+        {/* ── RIGHT COLUMN: Resumen de Equipo Sticky Sidebar ── */}
+        <div className="w-full lg:w-[360px] xl:w-[400px] shrink-0 lg:sticky lg:top-24">
           <div
-            className="sticky top-[100px] flex flex-col rounded-xl border shadow-sm overflow-hidden"
+            className="flex flex-col rounded-xl border shadow-sm overflow-hidden"
             style={{
               backgroundColor: "var(--store-surface-container-lowest)",
               borderColor: "var(--store-outline-variant)",
@@ -1490,7 +1490,7 @@ export default function ConfiguradorPage() {
                       </span>
                     </div>
 
-                    {/* RAM module slots (below the RAM row, based on motherboard ramSlots) */}
+                    {/* RAM module slots */}
                     {s.key === "ram" && ramSlotCount > 1 && (
                       <div
                         className="mt-1.5 grid grid-cols-1 gap-1.5 rounded-lg border border-dashed p-2"
@@ -1776,6 +1776,7 @@ export default function ConfiguradorPage() {
           </div>
         </div>
       </div>
+
     </div>
   );
 }

@@ -199,7 +199,7 @@ export function CsvImportModal({ isOpen, onOpenChange, onComplete }: CsvImportMo
                     <div className="max-h-32 space-y-1 overflow-y-auto">
                       {previewErrors.map((err, i) => (
                         <p key={i} className="text-xs text-red-600">
-                          Fila {err.row}: {err.message}
+                          Fila {err.rowIndex + 1}: {err.message}
                         </p>
                       ))}
                     </div>

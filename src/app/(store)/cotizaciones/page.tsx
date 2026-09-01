@@ -357,7 +357,7 @@ export default function MisCotizacionesPage() {
   return (
     <div className="mx-auto w-full px-4 py-10 md:px-8">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1
             className="text-2xl font-bold"

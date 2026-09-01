@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { KpiGrid } from "./_components/dashboard/kpi-grid";
 import { RecentQuotes } from "./_components/dashboard/recent-quotes";
 import { InventoryAlerts } from "./_components/dashboard/inventory-alerts";
-import { QuickActions } from "./_components/dashboard/quick-actions";
 import {
   InventoryAlertsSkeleton,
   KpiGridSkeleton,
@@ -42,8 +41,6 @@ export default async function CymDashboard() {
             <InventoryAlerts />
           </Suspense>
         </div>
-
-        <QuickActions />
       </div>
     </div>
   );

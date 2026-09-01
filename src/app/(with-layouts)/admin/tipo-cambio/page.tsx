@@ -177,6 +177,7 @@ export default function TipoCambioPage() {
       )}
 
       <div className="bg-admin-card border border-admin-border rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-admin-border">
@@ -228,6 +229,7 @@ export default function TipoCambioPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

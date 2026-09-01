@@ -87,6 +87,9 @@ function ThemeToggle() {
 
 function StoreShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const isCatalogoActive = pathname.startsWith("/tienda");
 
   /* ── Limpieza de configuración al salir ──────────────────────
      La configuración del PC solo debe persistir mientras el usuario
@@ -120,29 +123,20 @@ function StoreShell({ children }: { children: React.ReactNode }) {
 
           {/* Nav Links (Desktop) */}
           <div className="hidden items-center gap-8 md:flex">
-            {[
-              { href: "/tienda", label: "Tienda" },
-              { href: "/tienda", label: "Promociones" },
-              { href: "/tienda", label: "Nosotros" },
-            ].map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="pb-1 text-sm font-semibold uppercase tracking-wide transition-colors"
-                style={{
-                  color:
-                    item.label === "Tienda"
-                      ? "var(--store-primary)"
-                      : "var(--store-on-surface-variant)",
-                  borderBottom:
-                    item.label === "Tienda"
-                      ? "2px solid var(--store-primary)"
-                      : "2px solid transparent",
-                }}
-              >
-                {item.label}
-              </Link>
-            ))}
+            <Link
+              href="/tienda"
+              className="pb-1 text-sm font-semibold uppercase tracking-wide transition-colors"
+              style={{
+                color: isCatalogoActive
+                  ? "var(--store-primary)"
+                  : "var(--store-on-surface-variant)",
+                borderBottom: isCatalogoActive
+                  ? "2px solid var(--store-primary)"
+                  : "2px solid transparent",
+              }}
+            >
+              Catálogo
+            </Link>
           </div>
 
           {/* Actions */}
@@ -162,13 +156,58 @@ function StoreShell({ children }: { children: React.ReactNode }) {
             <CartButton />
             <AuthButton />
             <button
+              onClick={() => setMenuOpen((v) => !v)}
               className="transition-colors md:hidden"
               style={{ color: "var(--store-on-surface-variant)" }}
+              aria-label="Abrir menú"
+              aria-expanded={menuOpen}
             >
-              <span className="material-symbols-outlined">menu</span>
+              <span className="material-symbols-outlined">
+                {menuOpen ? "close" : "menu"}
+              </span>
             </button>
           </div>
         </div>
+
+        {/* Mobile Drawer */}
+        {menuOpen && (
+          <div
+            className="md:hidden"
+            style={{
+              backgroundColor: "var(--store-surface-container-lowest)",
+              borderColor: "var(--store-outline-variant)",
+            }}
+          >
+            <div className="space-y-1 border-t px-4 py-4">
+              <Link
+                href="/tienda"
+                onClick={() => setMenuOpen(false)}
+                className="block rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
+                style={{
+                  color: isCatalogoActive
+                    ? "var(--store-primary)"
+                    : "var(--store-on-surface-variant)",
+                  backgroundColor: isCatalogoActive
+                    ? "color-mix(in srgb, var(--store-primary) 12%, transparent)"
+                    : "transparent",
+                }}
+              >
+                Catálogo
+              </Link>
+              <Link
+                href="/configurador"
+                onClick={() => setMenuOpen(false)}
+                className="mt-2 block rounded-lg px-3 py-2.5 text-center text-sm font-semibold"
+                style={{
+                  backgroundColor: "var(--store-primary)",
+                  color: "var(--store-on-primary)",
+                }}
+              >
+                Cotiza tu PC
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ── Page Content ───────────────────────────────────── */}

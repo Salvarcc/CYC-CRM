@@ -706,7 +706,7 @@ export default function InventarioPage() {
   return (
     <div className="mt-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between px-2 lg:px-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-2 lg:px-6">
         <div>
           <h1 className="mb-1 text-[28px] leading-8 font-medium text-text-primary">
             Inventario de Componentes
@@ -715,7 +715,7 @@ export default function InventarioPage() {
             Gestiona el stock de componentes de PC de la tienda.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             appearance="outline"
             className="flex items-center gap-2"
@@ -1334,7 +1334,7 @@ export default function InventarioPage() {
                         onChange={(e) => setAddForm((f) => ({ ...f, marca: e.target.value }))}
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div>
                         <label className="mb-1 block text-sm font-medium text-text-primary">Moneda</label>
                         <select
@@ -1444,7 +1444,7 @@ export default function InventarioPage() {
                           <p className="mb-2 text-xs font-semibold text-red-700">Errores (se saltarán al importar):</p>
                           <div className="max-h-32 space-y-1 overflow-y-auto">
                             {csvParseResult.errors.map((err, i) => (
-                              <p key={i} className="text-xs text-red-600">Fila {err.row}: {err.message}</p>
+                              <p key={i} className="text-xs text-red-600">Fila {err.rowIndex + 1}: {err.message}</p>
                             ))}
                           </div>
                         </div>

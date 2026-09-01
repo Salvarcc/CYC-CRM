@@ -89,36 +89,59 @@ function toBool(val: unknown): boolean {
   return false;
 }
 
+const WHATSAPP_LABELS: Record<string, string> = {
+  cpu: "Procesador",
+  motherboard: "Placa Madre",
+  ram: "Memoria RAM",
+  gpu: "Tarjeta de Video",
+  cooler: "Refrigeración",
+  case: "Gabinete",
+  psu: "Fuente de Poder",
+  ssd: "SSD / Almacenamiento",
+  monitor: "Monitor",
+};
+
+const WHATSAPP_NUMBER = "51940295914";
+
 function buildSummaryLines(
   data: ConfigData,
   total: number,
   currency: "USD" | "PEN",
   rate: number,
+  senderName: string,
 ): string[] {
   const lines: string[] = [];
+  lines.push(`Hola, ¿qué tal? Soy ${senderName}.`);
+  lines.push("Quisiera solicitar una cotización para una PC con los siguientes componentes:");
+  lines.push("");
   for (const key of STEP_ORDER) {
     const p = data.selections[key];
     if (!p) continue;
-    const meta = STEP_META[key];
-    lines.push(`${meta.label}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`);
-  }
-  if (data.ramExtra) {
-    for (const p of data.ramExtra) {
-      if (!p) continue;
-      lines.push(`Memoria RAM (extra): ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`);
+    lines.push(
+      `${WHATSAPP_LABELS[key]}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`,
+    );
+    if (key === "ram" && data.ramExtra) {
+      for (const extra of data.ramExtra) {
+        if (!extra) continue;
+        lines.push(
+          `  - ${extra.nombre} — ${displayPrice(extra.precio, extra.moneda, currency, rate)}`,
+        );
+      }
     }
   }
   if (data.extras) {
     for (const key of EXTRA_ORDER) {
       const p = data.extras[key];
       if (!p) continue;
-      const meta = EXTRA_META[key];
-      lines.push(`${meta.label} (Opcional): ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`);
+      lines.push(
+        `${WHATSAPP_LABELS[key]}: ${p.nombre} — ${displayPrice(p.precio, p.moneda, currency, rate)}`,
+      );
     }
   }
   lines.push("");
-  lines.push(`Consumo estimado: ${data.totalConsumption}W`);
   lines.push(`Total: ${formatPrice(total, currency)}`);
+  lines.push("");
+  lines.push("¿Podrían confirmarme disponibilidad y el precio final? ¡Quedo atento a su respuesta!");
   return lines;
 }
 
@@ -233,11 +256,10 @@ export default function CotizacionPage() {
 
   function handleWhatsApp() {
     if (!data) return;
-    const lines = buildSummaryLines(data, totalPrice, currency, rate.venta);
-    const text = encodeURIComponent(
-      `Hola, me interesa esta configuración de PC:\n\n${lines.join("\n")}\n\n¿Podrían confirmar disponibilidad y precio final?`,
-    );
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+    const senderName = (session?.user?.nombre || session?.user?.name || "[Tu nombre]").trim();
+    const lines = buildSummaryLines(data, totalPrice, currency, rate.venta, senderName);
+    const text = encodeURIComponent(lines.join("\n"));
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
   }
 
   /* ── Email handler ────────────────────────────────────────────── */
@@ -245,12 +267,13 @@ export default function CotizacionPage() {
   function handleEmail(e: React.FormEvent) {
     e.preventDefault();
     if (!data || !email) return;
-    const lines = buildSummaryLines(data, totalPrice, currency, rate.venta);
+    const senderName = (session?.user?.nombre || session?.user?.name || "[Tu nombre]").trim();
+    const lines = buildSummaryLines(data, totalPrice, currency, rate.venta, senderName);
     const subject = encodeURIComponent(
       `Cotización PC — ${quotationId}`,
     );
     const body = encodeURIComponent(
-      `Hola,\n\nAdjunto la configuración de PC que me interesa:\n\n${lines.join("\n")}\n\nQuedo atento a su respuesta.\n\nSaludos.`,
+      `${lines.join("\n")}\n\nQuedo atento a su respuesta.\n\nSaludos.`,
     );
     window.open(
       `mailto:${email}?subject=${subject}&body=${body}`,

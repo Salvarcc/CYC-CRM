@@ -52,7 +52,7 @@ export default function CategoryAttributeForm({
       {/* ── CPU ── */}
       {categoryKey === "cpu" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Socket <span className="text-red-500">*</span></label>
               <select
@@ -80,7 +80,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">TDP (Watts) <span className="text-red-500">*</span></label>
               <select
@@ -128,7 +128,7 @@ export default function CategoryAttributeForm({
       {/* ── Motherboard ── */}
       {categoryKey === "motherboard" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Socket <span className="text-red-500">*</span></label>
               <select
@@ -156,7 +156,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma <span className="text-red-500">*</span></label>
               <select
@@ -203,7 +203,7 @@ export default function CategoryAttributeForm({
       {/* ── RAM ── */}
       {categoryKey === "ram" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Memoria <span className="text-red-500">*</span></label>
               <select
@@ -230,7 +230,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB) <span className="text-red-500">*</span></label>
               <select
@@ -264,7 +264,7 @@ export default function CategoryAttributeForm({
       {/* ── GPU ── */}
       {categoryKey === "gpu" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">VRAM (GB) <span className="text-red-500">*</span></label>
               <select
@@ -345,7 +345,7 @@ export default function CategoryAttributeForm({
               })}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">TDP Soportado (W) <span className="text-red-500">*</span></label>
               <select
@@ -426,7 +426,7 @@ export default function CategoryAttributeForm({
               })}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">GPU Máx (mm) <span className="text-red-500">*</span></label>
               <select
@@ -454,7 +454,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="flex items-center gap-2 text-sm text-text-primary">
               <input
                 type="checkbox"
@@ -486,7 +486,7 @@ export default function CategoryAttributeForm({
       {/* ── PSU ── */}
       {categoryKey === "psu" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Potencia (W) <span className="text-red-500">*</span></label>
               <select
@@ -514,7 +514,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Factor Forma <span className="text-red-500">*</span></label>
               <select
@@ -546,7 +546,7 @@ export default function CategoryAttributeForm({
       {/* ── SSD ── */}
       {categoryKey === "ssd" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Capacidad (GB) <span className="text-red-500">*</span></label>
               <select
@@ -587,7 +587,7 @@ export default function CategoryAttributeForm({
               <option value="PCIe">PCIe</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Lectura (MB/s) <span className="text-red-500">*</span></label>
               <select
@@ -621,7 +621,7 @@ export default function CategoryAttributeForm({
       {/* ── Monitor ── */}
       {categoryKey === "monitor" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Tamaño <span className="text-red-500">*</span></label>
               <select
@@ -649,7 +649,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Tipo Panel <span className="text-red-500">*</span></label>
               <select
@@ -677,7 +677,7 @@ export default function CategoryAttributeForm({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-text-primary">Tiempo Respuesta (ms) <span className="text-red-500">*</span></label>
               <select
