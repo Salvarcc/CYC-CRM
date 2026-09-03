@@ -10,7 +10,7 @@ const PAGES: Record<string, string> = {
 
 function fetch(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }, timeout: 20000 }, (res) => {
+    const req = https.get(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }, timeout: 20000 }, (res) => {
       if ([301, 302, 303, 307, 308].includes(res.statusCode!) && res.headers.location) {
         res.resume();
         return fetch(new URL(res.headers.location, url).toString()).then(resolve, reject);
@@ -19,8 +19,9 @@ function fetch(url: string): Promise<string> {
       res.on("data", (c: Buffer) => chunks.push(c));
       res.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
       res.on("error", reject);
-    }).on("timeout", function () { this.destroy(); reject(new Error("timeout")); })
-      .on("error", reject);
+    });
+    req.on("timeout", () => { req.destroy(); reject(new Error("timeout")); });
+    req.on("error", reject);
   });
 }
 
